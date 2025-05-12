@@ -4,6 +4,11 @@
       "candid": "canisters/staking/staking.did",
       "package": "staking",
       "type": "rust"
+    },
+    "assets_management": {
+      "candid": "canisters/assets_management/assets_management.did",
+      "package": "assets_management",
+      "type": "rust"
     }
   },
   "defaults": {
@@ -22,10 +27,19 @@
   "output_env_file": ".env",
   "version": 1,
   "networks": {
-    "myNetwork": {
-      "providers": [
-        "https://worldlottery.fun"
-      ],
+    "ic": {
+      "providers": [ "https://ic0.app" ],
+      "type": "persistent"
+    },
+    "dev": {
+      "providers": [ "https://ic0.app" ],
+      "type": "persistent",
+      "replica": "https://ic0.app",
+      "dfx": "https://ic0.app",
+      "dfx_version": "0.26.1"
+    },
+    "test": {
+      "providers": [ "https://ic0.app" ],
       "type": "persistent"
     }
   }
