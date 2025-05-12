@@ -1,0 +1,20 @@
+[package]
+name = "system_configs_macro"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+proc-macro = true
+
+[dependencies]
+ic-cdk = { workspace = true }
+candid = { workspace = true }
+ic_principal = { workspace = true }
+ic-stable-structures = { workspace = true }
+
+proc-macro2 = { workspace = true }
+quote = { workspace = true }
+syn = { workspace = true }
+
+types = { path = "../types" }

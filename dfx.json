@@ -1,0 +1,32 @@
+{
+  "canisters": {
+    "staking": {
+      "candid": "canisters/staking/staking.did",
+      "package": "staking",
+      "type": "rust"
+    }
+  },
+  "defaults": {
+    "bitcoin": {
+      "enabled": false,
+      "log_level": "info",
+      "nodes": [
+        "127.0.0.1:18444"
+      ]
+    },
+    "build": {
+      "args": "",
+      "packtool": "mops sources"
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1,
+  "networks": {
+    "myNetwork": {
+      "providers": [
+        "https://worldlottery.fun"
+      ],
+      "type": "persistent"
+    }
+  }
+}
