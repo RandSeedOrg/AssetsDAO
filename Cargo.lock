@@ -30,6 +30,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23b62fc65de8e4e7f52534fb52b0f3ed04746ae267519eef2a83941e8085068b"
 
 [[package]]
+name = "assets_management"
+version = "0.1.0"
+dependencies = [
+ "bigdecimal",
+ "candid",
+ "chrono",
+ "common_canisters",
+ "ic-cdk",
+ "ic-cdk-timers",
+ "ic-ledger-types",
+ "ic-stable-structures",
+ "num-bigint",
+ "parallel_guard_macro",
+ "scopeguard",
+ "serde",
+ "sha2",
+ "strum 0.27.1",
+ "strum_macros 0.27.1",
+ "system_configs_macro",
+ "types",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -5,6 +5,7 @@ members = [
   "libraries/parallel_guard_macro",
   "libraries/common_canisters",
 
+  "canisters/assets_management",
   "canisters/staking",
 ]
 resolver = "2"

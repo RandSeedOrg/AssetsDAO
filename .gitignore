@@ -9,6 +9,8 @@
 
 # dfx temporary files
 .dfx/
+.env
+
 
 # generated files
 **/declarations/
@@ -23,11 +25,13 @@ dist/
 
 .mops
 *.bkp
-*.sh
 
 # Added by cargo
 
 /target
 *.tsbuildinfo
 
+# deploy tools
+*.sh
 canisters/**/*.did
+canister_ids.json

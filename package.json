@@ -1,0 +1,26 @@
+{
+  "name": "assetsdao",
+  "version": "1.0.0",
+  "description": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RandSeedOrg/AssetsDAO.git"
+  },
+  "license": "GPL-3.0-only",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "ic-env:local": "node -r dotenv/config ./deploy-tools/ic-env-switch.mjs dotenv_config_path=./.env.local",
+    "ic-env:dev": "node -r dotenv/config ./deploy-tools/ic-env-switch.mjs dotenv_config_path=./.env.dev",
+    "ic-env:test": "node -r dotenv/config ./deploy-tools/ic-env-switch.mjs dotenv_config_path=./.env.test",
+    "ic-env:prod": "node -r dotenv/config ./deploy-tools/ic-env-switch.mjs dotenv_config_path=./.env.prod",
+    "postic-env:local": "chmod +x ./*.sh",
+    "postic-env:dev": "chmod +x ./*.sh",
+    "postic-env:test": "chmod +x ./*.sh",
+    "postic-env:ic": "chmod +x ./*.sh"
+  },
+  "devDependencies": {
+    "dotenv": "^16.5.0"
+  }
+}
