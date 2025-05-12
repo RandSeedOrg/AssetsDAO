@@ -1,6 +1,5 @@
 use recover_early_unstake::{recover_unstake_penalty_onchain_error, recover_unstake_penalty_pay_center_error};
-
-use crate::StakingAccountId;
+use types::staking::StakingAccountId;
 
 use super::{stable_structures::StakingAccountRecoverableError, STAKING_ACCOUNT_MAP};
 

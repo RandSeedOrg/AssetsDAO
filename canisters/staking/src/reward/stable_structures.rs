@@ -5,9 +5,9 @@ use candid::{CandidType, Decode, Encode};
 use ic_stable_structures::{storable::Bound, Storable};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
-use types::{date::YearMonthDay, entities::add_indexed_id, product::e8s_to_value, stable_structures::{new_entity_id, MetaData}, EntityId, TimestampNanos, UserId, E8S};
+use types::{date::YearMonthDay, entities::add_indexed_id, product::e8s_to_value, stable_structures::{new_entity_id, MetaData}, staking::{StakingAccountId, StakingRewardId}, EntityId, TimestampNanos, UserId, E8S};
 
-use crate::{account::stable_structures::StakingAccount, pool::stable_structures::RewardCrypto, StakingAccountId, StakingRewardId};
+use crate::{account::stable_structures::StakingAccount, pool::stable_structures::RewardCrypto};
 
 use super::{STAKING_ACCOUNT_REWARD_INDEX_MAP, STAKING_POOL_REWARD_INDEX_MAP, STAKING_REWARD_ID, STAKING_REWARD_MAP, STAKING_USER_REWARD_INDEX_MAP};
 

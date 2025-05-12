@@ -4,9 +4,9 @@ use candid::{CandidType, Decode, Encode, Principal};
 use ic_ledger_types::BlockIndex;
 use ic_stable_structures::{storable::Bound, Storable};
 use serde::{Deserialize, Serialize};
-use types::{stable_structures::new_entity_id, EntityId, TimestampNanos};
+use types::{stable_structures::new_entity_id, staking::{StakingAccountId, StakingPoolId}, EntityId, TimestampNanos};
 
-use crate::{account::stable_structures::StakingAccount, pool::stable_structures::{StakingPool, StakingPoolStatus}, reward::stable_structures::StakingReward, StakingAccountId, StakingPoolId};
+use crate::{account::stable_structures::StakingAccount, pool::stable_structures::{StakingPool, StakingPoolStatus}, reward::stable_structures::StakingReward};
 
 use super::{STAKING_EVENT_LOG_ID, STAKING_EVENT_LOG_MAP};
 

@@ -1,8 +1,6 @@
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
-use types::E8S;
-
-use crate::StakingPoolId;
+use types::{staking::StakingPoolId, E8S};
 
 
 /// The client that initiates the stake requests the data transfer object

@@ -5,9 +5,9 @@ use ic_stable_structures::{memory_manager::MemoryId, Cell, StableBTreeMap};
 use stable_structures::{StakingPool, StakingPoolStatus};
 use system_configs_macro::{has_permission, has_permission_option};
 use transport_structures::{StakingPoolAddDto, StakingPoolUpdateDto, StakingPoolVo};
-use types::{stable_structures::Memory, EntityId};
+use types::{stable_structures::Memory, staking::StakingPoolId, EntityId};
 
-use crate::{event_log::staking_pool_events::{save_change_staking_pool_status_event_log, save_change_staking_pool_visible_event_log, save_update_staking_pool_event_log}, memory_ids::{STAKING_POOL, STAKING_POOL_SEQ}, StakingPoolId, MEMORY_MANAGER};
+use crate::{event_log::staking_pool_events::{save_change_staking_pool_status_event_log, save_change_staking_pool_visible_event_log, save_update_staking_pool_event_log}, memory_ids::{STAKING_POOL, STAKING_POOL_SEQ}, MEMORY_MANAGER};
 
 pub mod stable_structures;
 pub mod transport_structures;

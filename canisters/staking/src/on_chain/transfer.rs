@@ -1,7 +1,7 @@
 use ic_ledger_types::{AccountIdentifier, BlockIndex, Memo, Subaccount, Tokens, TransferArgs, TransferError, MAINNET_LEDGER_CANISTER_ID};
-use types::{sys::ExteralCanisterLabels, E8S};
+use types::{staking::{StakingAccountId, StakingPoolId}, sys::ExteralCanisterLabels, E8S};
 
-use crate::{system_configs::get_exteral_canister_id, StakingAccountId, StakingPoolId};
+use crate::system_configs::get_exteral_canister_id;
 
 use super::address::{generate_staking_account_account_identifier, generate_staking_account_subaccount, generate_staking_pool_account_identifier, generate_staking_pool_subaccount};
 

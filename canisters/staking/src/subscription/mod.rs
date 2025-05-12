@@ -5,9 +5,9 @@ use ic_stable_structures::{memory_manager::MemoryId, Cell, StableBTreeMap};
 use stable_structures::{StakingSubscription, SubscribeScene};
 use system_configs_macro::has_permission;
 use transport_structures::{StakingSubscribeAddDto, StakingSubscriptionVo, SubscriptionQueryParams, SubscriptionRequest, SubscriptionResponse};
-use types::{stable_structures::Memory, EntityId};
+use types::{stable_structures::Memory, staking::SubscriptionId, EntityId};
 
-use crate::{event_log::transport_structures::SortType, memory_ids::{STAKING_SUBSCRIPTION, STAKING_SUBSCRIPTION_SEQ}, SubscriptionId, MEMORY_MANAGER};
+use crate::{event_log::transport_structures::SortType, memory_ids::{STAKING_SUBSCRIPTION, STAKING_SUBSCRIPTION_SEQ}, MEMORY_MANAGER};
 
 pub mod stable_structures;
 pub mod transport_structures;

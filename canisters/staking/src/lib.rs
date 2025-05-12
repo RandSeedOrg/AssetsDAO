@@ -17,16 +17,12 @@ pub mod scheduled_tasks;
 mod init;
 pub mod subscription;
 
-/// Each moduleIDAlias，Avoid confusion，Enhanced readability
-pub type StakingAccountId = EntityId;
-pub type StakingPoolId = EntityId;
-pub type StakingEventLogId = EntityId;
-pub type StakingRewardId = EntityId;
-pub type SubscriptionId = EntityId;
-
 thread_local! {
   static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> = RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
 }
+
+use types::staking::StakingAccountId;
+use types::staking::StakingPoolId;
 
 use types::sys::config::SystemConfig;
 use types::sys::config::UserRolePermissionVo;

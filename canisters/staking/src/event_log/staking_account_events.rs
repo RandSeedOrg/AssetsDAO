@@ -1,5 +1,7 @@
 
-use crate::{account::stable_structures::StakingAccount, StakingAccountId};
+use types::staking::StakingAccountId;
+
+use crate::account::stable_structures::StakingAccount;
 use super::stable_structures::{EventLog, EventType};
 
 

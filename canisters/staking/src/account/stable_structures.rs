@@ -5,9 +5,9 @@ use ic_ledger_types::BlockIndex;
 use ic_stable_structures::{storable::Bound, Storable};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
-use types::{date::YearMonthDay, entities::{add_indexed_id, remove_indexed_id}, stable_structures::{new_entity_id, MetaData}, EntityId, TimestampNanos, UserId, E8S};
+use types::{date::YearMonthDay, entities::{add_indexed_id, remove_indexed_id}, stable_structures::{new_entity_id, MetaData}, staking::StakingAccountId, EntityId, TimestampNanos, UserId, E8S};
 
-use crate::{on_chain::address::generate_staking_account_chain_address, pool::stable_structures::{RewardConfig, StakingPool}, reward::stable_structures::StakingReward, StakingAccountId};
+use crate::{on_chain::address::generate_staking_account_chain_address, pool::stable_structures::{RewardConfig, StakingPool}, reward::stable_structures::StakingReward};
 
 use super::{client_transport_structures::StakeDto, STAKING_ACCOUNT_ID, STAKING_ACCOUNT_MAP, STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX_MAP, STAKING_UNSTAKE_ON_DAY_ACCOUNT_INDEX_MAP};
 

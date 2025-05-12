@@ -3,9 +3,9 @@ use std::cell::RefCell;
 use ic_stable_structures::{memory_manager::MemoryId, StableBTreeMap, Cell};
 use stable_key::StakingAccountUserRewardDateIndexKey;
 use stable_structures::StakingReward;
-use types::{entities::EntityIndex, stable_structures::Memory, EntityId, UserId};
+use types::{entities::EntityIndex, stable_structures::Memory, staking::{StakingAccountId, StakingPoolId, StakingRewardId}, EntityId, UserId};
 
-use crate::{memory_ids::{STAKING_ACCOUNT_REWARD_INDEX, STAKING_POOL_REWARD_INDEX, STAKING_REWARD, STAKING_REWARD_SEQ, STAKING_USER_ACCOUNT_REWARD_DATE_INDEX, STAKING_USER_REWARD_INDEX}, StakingAccountId, StakingPoolId, StakingRewardId, MEMORY_MANAGER};
+use crate::{memory_ids::{STAKING_ACCOUNT_REWARD_INDEX, STAKING_POOL_REWARD_INDEX, STAKING_REWARD, STAKING_REWARD_SEQ, STAKING_USER_ACCOUNT_REWARD_DATE_INDEX, STAKING_USER_REWARD_INDEX}, MEMORY_MANAGER};
 
 pub mod stable_structures;
 pub mod transport_structures;

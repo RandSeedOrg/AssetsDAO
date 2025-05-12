@@ -1,6 +1,4 @@
-use types::UserId;
-
-use crate::StakingAccountId;
+use types::{staking::StakingAccountId, UserId};
 
 /// Obtain the key for stake entrance
 pub fn get_stake_guard_key(user_id: UserId) -> String {

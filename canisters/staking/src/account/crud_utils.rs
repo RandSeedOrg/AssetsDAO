@@ -1,7 +1,7 @@
 use candid::Principal;
-use types::{date::YearMonthDay, entities::{add_indexed_id, get_indexed_ids, remove_indexed_id}};
+use types::{date::YearMonthDay, entities::{add_indexed_id, get_indexed_ids, remove_indexed_id}, staking::{StakingAccountId, StakingPoolId}};
 
-use crate::{event_log::staking_account_events::save_delete_staking_account_event_log, StakingAccountId, StakingPoolId};
+use crate::event_log::staking_account_events::save_delete_staking_account_event_log;
 
 use super::{stable_structures::{StakingAccount, StakingAccountStatus}, STAKING_ACCOUNT_MAP, STAKING_POOL_ACCOUNT_INDEX_MAP, STAKING_UNSTAKE_ON_DAY_ACCOUNT_INDEX_MAP, STAKING_USER_ACCOUNT_INDEX_MAP};
 

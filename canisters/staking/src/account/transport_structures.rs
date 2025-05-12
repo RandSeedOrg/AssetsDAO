@@ -1,8 +1,8 @@
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
-use types::{pagination::{PageRequest, PageResponse}, UserId, E8S};
+use types::{pagination::{PageRequest, PageResponse}, staking::{StakingAccountId, StakingPoolId}, UserId, E8S};
 
-use crate::{pool::transport_structures::RewardConfigVo, StakingAccountId, StakingPoolId};
+use crate::pool::transport_structures::RewardConfigVo;
 
 use super::stable_structures::StakingAccount;
 

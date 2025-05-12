@@ -1,4 +1,6 @@
-use crate::{pool::stable_structures::{StakingPool, StakingPoolStatus}, StakingPoolId};
+use types::staking::StakingPoolId;
+
+use crate::pool::stable_structures::{StakingPool, StakingPoolStatus};
 
 use super::stable_structures::{EventLog, EventType};
 

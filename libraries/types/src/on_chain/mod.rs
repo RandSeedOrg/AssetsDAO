@@ -15,7 +15,5 @@ pub enum Crypto {
 #[derive(EnumString, Display, Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq)]
 pub enum BlockChain {
   #[strum(serialize = "0")]
-  ICP,
-  #[strum(serialize = "1")]
-  TON,
+  ICP
 }

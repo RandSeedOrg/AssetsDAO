@@ -10,6 +10,8 @@ pub mod date;
 pub mod entities;
 pub mod pagination;
 pub mod on_chain;
+pub mod staking;
+pub mod assets_management;
 
 
 pub type E8S = u64;

@@ -1,9 +1,7 @@
 
 use candid::Principal;
 use ic_ledger_types::{AccountIdentifier, Subaccount};
-use types::EntityId;
-
-use crate::{StakingAccountId, StakingPoolId};
+use types::{staking::{StakingAccountId, StakingPoolId}, EntityId};
 
 const STAKING_POOL_ADDRESS_PREFIX: &str = "staking_pool_";
 

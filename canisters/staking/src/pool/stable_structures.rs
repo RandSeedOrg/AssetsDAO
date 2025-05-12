@@ -28,7 +28,7 @@ pub struct StakingPool {
   pub staked_user_count: Option<u32>,
   /// Staking currency
   pub crypto: Option<Crypto>,
-  /// Staking poolstate
+  /// Staking pool state
   pub status: Option<StakingPoolStatus>,
   /// The stake pool is inCEnd visibility
   pub client_visible: Option<bool>,
@@ -532,14 +532,21 @@ impl LimitConfig {
 /// Staking pool state
 #[derive(EnumString, Display, Debug, Clone, Serialize, Deserialize, CandidType, PartialEq)]
 pub enum StakingPoolStatus {
+  /// Newly created, cannot be pledged, and is not visible to the client
   #[strum(serialize = "0")]
   Created,
+  /// Open staking. At this time, if the staking pool is visible on the user side, staking can be performed.
   #[strum(serialize = "1")]
   Open,
+  /// Close the pledge. At this time, the pledge pool cannot be pledged.
   #[strum(serialize = "2")]
   Closed,
+  /// Finished indicates the final state of the pledge pool. Therefore, once this state is entered, the state cannot be changed.
+  /// Finished: When the pledge pool has generated financing and the current remaining pledge amount is 0, the administrator can manually set it to Finished through the backend
+  /// Only the pledge pool in the Closed state can be set to the Finished state
   #[strum(serialize = "3")]
   Finished,
+  /// Cancelled: This can only be canceled if no one has ever staked in the staking pool. If you edit again after cancellation, it will enter the Created state.
   #[strum(serialize = "4")]
   Cancelled,
 }

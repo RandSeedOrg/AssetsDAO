@@ -1,6 +1,5 @@
 use ic_ledger_types::BlockIndex;
-
-use crate::{StakingAccountId, StakingPoolId};
+use types::staking::{StakingAccountId, StakingPoolId};
 
 use super::stable_structures::{ErrorMessage, EventLog, EventType, PayCenterCanisterId};
 

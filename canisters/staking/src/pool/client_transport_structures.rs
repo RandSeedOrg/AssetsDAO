@@ -1,8 +1,8 @@
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
-use types::E8S;
+use types::{staking::StakingPoolId, E8S};
 
-use crate::{account::{crud_utils::query_current_user_staking_accounts, stable_structures::StakingAccountStatus}, StakingPoolId};
+use crate::account::{crud_utils::query_current_user_staking_accounts, stable_structures::StakingAccountStatus};
 
 use super::{stable_structures::StakingPool, transport_structures::{LimitConfigVo, RewardConfigVo, TermConfigVo}};
 
