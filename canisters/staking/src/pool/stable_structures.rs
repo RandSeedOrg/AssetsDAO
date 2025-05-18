@@ -308,7 +308,7 @@ impl StakingPool {
 
     match status.clone() {
       StakingPoolStatus::Open => {
-        if old_status != StakingPoolStatus::Created || old_status != StakingPoolStatus::Closed {
+        if old_status != StakingPoolStatus::Created && old_status != StakingPoolStatus::Closed {
           ic_cdk::println!("Attempt to open pool from {:?} to {:?} is not allowed.", old_status, status);
           return Some("Only Created or Closed pools can be opened".to_string());
         }
