@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use types::{product::e8s_to_value, stable_structures::{new_entity_id, MetaData}, Crypto, EntityId, TimestampNanos, E8S};
 use strum_macros::{Display, EnumString};
 
-use crate::{account::stable_structures::StakingAccount, on_chain::address::generate_staking_pool_chain_address};
+use crate::{account::{badge_utils::{add_staker_badge, remove_staker_badge}, stable_structures::StakingAccount}, on_chain::address::generate_staking_pool_chain_address};
 
 use super::{transport_structures::StakingPoolAddDto, STAKING_POOL_ID, STAKING_POOL_MAP};
 
@@ -223,6 +223,15 @@ impl StakingPool {
 
       map.insert(pool.get_id(), pool.clone());
 
+      let account_owner = account.get_owner();
+      let account_id = account.get_id();
+
+      ic_cdk::futures::spawn(async move {
+        add_staker_badge(account_owner, account_id).await.unwrap_or_else(|e| {
+          ic_cdk::println!("Failed to add staker badge: {:?}", e);
+        });
+      });
+
       Ok(pool)
     })
   }
@@ -246,6 +255,13 @@ impl StakingPool {
       if user_already_in_stake_accounts.len() == 1 {
         // If the user has only one staked account in the stake pool，则Update the number of stakes in the stake pool
         pool.staked_user_count = Some(pool.get_staked_user_count() - 1);
+
+        let account_owner = account.get_owner();
+        ic_cdk::futures::spawn(async move {
+          remove_staker_badge(account_owner).await.unwrap_or_else(|e| {
+            ic_cdk::println!("Failed to remove staker badge: {:?}", e);
+          });
+        });
       }
 
       pool.update_meta();

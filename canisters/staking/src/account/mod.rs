@@ -16,6 +16,7 @@ pub mod client_transport_structures;
 pub mod operation_utils;
 pub mod guard_keys;
 pub mod recovery_errors;
+pub mod badge_utils;
 
 thread_local! {
   /// stake account increasesIDGenerator
