@@ -308,9 +308,9 @@ impl StakingPool {
 
     match status.clone() {
       StakingPoolStatus::Open => {
-        if old_status != StakingPoolStatus::Created || old_status == StakingPoolStatus::Cancelled {
+        if old_status != StakingPoolStatus::Created || old_status != StakingPoolStatus::Closed {
           ic_cdk::println!("Attempt to open pool from {:?} to {:?} is not allowed.", old_status, status);
-          return Some("Only Created or Cancelled pools can be opened".to_string());
+          return Some("Only Created or Closed pools can be opened".to_string());
         }
         
         self.open_time = Some(ic_cdk::api::time());
@@ -324,17 +324,17 @@ impl StakingPool {
         self.close_time = Some(ic_cdk::api::time());
       },
       StakingPoolStatus::Finished => {
-        if old_status != StakingPoolStatus::Closed && old_status != StakingPoolStatus::Open {
+        if old_status != StakingPoolStatus::Closed {
           ic_cdk::println!("Attempt to finish pool from {:?} to {:?} is not allowed.", old_status, status);
-          return Some("Only Closed or Open pools can be finished".to_string());
+          return Some("Only Closed pools can be finished".to_string());
         }
         // 
         self.end_time = Some(ic_cdk::api::time());
       },
       StakingPoolStatus::Cancelled => {
-        if self.get_staked_amount() > 0 || self.get_client_visible() {
-          ic_cdk::println!("Attempt to cancel pool from {:?} to {:?} is not allowed, because staked amount is greater than 0 and visible to the client.", old_status, status);
-          return Some(format!("Attempt to cancel pool from {:?} to {:?} is not allowed, because staked amount is greater than 0 and visible to the client.", old_status, status));
+        if old_status != StakingPoolStatus::Created {
+          ic_cdk::println!("Attempt to cancel pool from {:?} to {:?} is not allowed.", old_status, status);
+          return Some(format!("Only Created pools can be Cancelled."));
         }
 
         // Set the end time to the current time
