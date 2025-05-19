@@ -2,9 +2,18 @@ use candid::Principal;
 use common_canisters::pay_center::Result2;
 use types::{date::YearMonthDay, product::generate_staking_reward_payment_transaction_id, sys::ExteralCanisterLabels};
 
-use crate::{account::{guard_keys::get_distribute_reward_guard_key, stable_structures::StakingAccount}, event_log::stake_reward_events::{save_reward_distribute_event, save_reward_received_event}, parallel_guard::EntryGuard, system_configs::get_exteral_canister_id};
+use crate::{
+  account::{guard_keys::get_distribute_reward_guard_key, stable_structures::StakingAccount},
+  event_log::stake_reward_events::{save_reward_distribute_event, save_reward_received_event},
+  parallel_guard::EntryGuard,
+  system_configs::get_exteral_canister_id,
+};
 
-use super::{stable_key::StakingAccountUserRewardDateIndexKey, stable_structures::{StakingReward, StakingRewardStatus}, STAKING_REWARD_MAP, STAKING_USER_ACCOUNT_REWARD_DATE_INDEX_MAP};
+use super::{
+  STAKING_REWARD_MAP, STAKING_USER_ACCOUNT_REWARD_DATE_INDEX_MAP,
+  stable_key::StakingAccountUserRewardDateIndexKey,
+  stable_structures::{StakingReward, StakingRewardStatus},
+};
 
 /// Update the reward distribution record of the current account on a certain day
 fn update_account_distributed_the_day(reward: &StakingReward, day: YearMonthDay) {
@@ -36,38 +45,30 @@ pub fn get_account_distributed_the_day(account: &StakingAccount, day: YearMonthD
 /// Issuing stake rewards
 pub async fn distribute_reward(account: &StakingAccount, day: YearMonthDay) -> Result<StakingReward, String> {
   // Reentry protection
-  let _entry_guard = EntryGuard::new(get_distribute_reward_guard_key(account.get_id())).map_err(|_| {
-    format!(
-      "Failed to acquire distribute reward entry guard for account {}",
-      account.get_id()
-    )
-  })?;
+  let _entry_guard = EntryGuard::new(get_distribute_reward_guard_key(account.get_id()))
+    .map_err(|_| format!("Failed to acquire distribute reward entry guard for account {}", account.get_id()))?;
 
   // If the current account is staked today，No reward will be issued
   if YearMonthDay::from(account.get_stake_time()) == day {
-    return Err(format!(
-      "Account {} is stake today, no reward to distribute",
-      account.get_id()
-    ));
+    return Err(format!("Account {} is stake today, no reward to distribute", account.get_id()));
   }
 
   // If the expiration time of the current account is less than today(Expired)，No reward will be issued
   if YearMonthDay::from(account.get_stake_deadline()) < day {
-    return Err(format!(
-      "Account {} is expired, no reward to distribute",
-      account.get_id()
-    ));
+    return Err(format!("Account {} is expired, no reward to distribute", account.get_id()));
   }
 
   // 1. Create a stake reward record，If already exists，Then no longer create
   let (reward, updated_staking_account) = match get_account_distributed_the_day(account, day) {
     Some(reward) => (reward, account.clone()), // Get the reward distribution record of the current account in today's reward distribution record，If so, return the reward record and account information
-    None => StakingReward::reward_account(account),     // If not，Create a new reward record
+    None => StakingReward::reward_account(account), // If not，Create a new reward record
   };
 
-  if reward.get_status() == StakingRewardStatus::Created { // 1.1 If the staked account is in a new state，Update today's reward distribution index
+  if reward.get_status() == StakingRewardStatus::Created {
+    // 1.1 If the staked account is in a new state，Update today's reward distribution index
     update_account_distributed_the_day(&reward, day);
-  } else { // 1.2 The stake reward for the day has been issued，No reissue
+  } else {
+    // 1.2 The stake reward for the day has been issued，No reissue
     return Err(format!(
       "Account {} has already been distributed on {}-{}-{}",
       account.get_id(),
@@ -83,10 +84,7 @@ pub async fn distribute_reward(account: &StakingAccount, day: YearMonthDay) -> R
   let user_principal = match Principal::from_text(account.get_owner()) {
     Ok(principal) => principal,
     Err(_) => {
-      return Err(format!(
-        "Invalid user principal: {}",
-        account.get_owner()
-      ));
+      return Err(format!("Invalid user principal: {}", account.get_owner()));
     }
   };
 
@@ -94,21 +92,21 @@ pub async fn distribute_reward(account: &StakingAccount, day: YearMonthDay) -> R
   let pay_center_canister_id = get_exteral_canister_id(ExteralCanisterLabels::PayCenter);
   let pay_center = common_canisters::pay_center::Service(pay_center_canister_id);
   let tx_id = generate_staking_reward_payment_transaction_id(reward.get_id()).unwrap();
-  let (response,) = match pay_center.update_account_bonus(
-    user_principal, 
-    reward.get_reward_amount_float(), 
-    Some(tx_id),
-    "Staking Rewards".to_string(),
-    Some(reward.get_account_id()),
-    Some(reward.get_id()),
-    Vec::new(),
-  ).await {
+  let (response,) = match pay_center
+    .update_account_bonus(
+      user_principal,
+      reward.get_reward_amount_float(),
+      Some(tx_id),
+      "Staking Rewards".to_string(),
+      Some(reward.get_account_id()),
+      Some(reward.get_id()),
+      Vec::new(),
+    )
+    .await
+  {
     Ok(response) => response,
     Err(e) => {
-      return Err(format!(
-        "Failed to update account bonus: {}",
-        e.1
-      ));
+      return Err(format!("Failed to update account bonus: {}", e.1));
     }
   };
 

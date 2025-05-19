@@ -1,8 +1,10 @@
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
-use crate::{product::{BatchId, E4S}, EntityId, TimestampNanos, UserId, E8S};
-
+use crate::{
+  E8S, EntityId, TimestampNanos, UserId,
+  product::{BatchId, E4S},
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub struct QuickQuidExtraConfigDto {
@@ -40,7 +42,6 @@ pub struct RuntimeCardVo {
   // Grid on the card
   pub cells: Vec<RuntimeCellVo>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub struct RuntimeCellVo {

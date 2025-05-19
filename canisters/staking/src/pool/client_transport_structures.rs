@@ -1,10 +1,13 @@
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
-use types::{staking::StakingPoolId, E8S};
+use types::{E8S, staking::StakingPoolId};
 
 use crate::account::{crud_utils::query_current_user_staking_accounts, stable_structures::StakingAccountStatus};
 
-use super::{stable_structures::StakingPool, transport_structures::{LimitConfigVo, RewardConfigVo, TermConfigVo}};
+use super::{
+  stable_structures::StakingPool,
+  transport_structures::{LimitConfigVo, RewardConfigVo, TermConfigVo},
+};
 
 /// CThe return data structure of the end user querying the stake pool information
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
@@ -53,31 +56,21 @@ impl ClientStakingPoolVo {
 
     let my_in_stake_accounts = current_user_accounts
       .iter()
-      .filter(|account| {
-        match account.get_status() {
-          StakingAccountStatus::InStake => true,
-          _ => false,
-        }
+      .filter(|account| match account.get_status() {
+        StakingAccountStatus::InStake => true,
+        _ => false,
       })
       .collect::<Vec<_>>();
 
-    let my_staked_amount = my_in_stake_accounts
-      .iter()
-      .map(|account| account.get_staked_amount())
-      .sum::<E8S>();
+    let my_staked_amount = my_in_stake_accounts.iter().map(|account| account.get_staked_amount()).sum::<E8S>();
 
-    let my_rewards = current_user_accounts
-      .iter()
-      .map(|account| account.get_accumulated_rewards())
-      .sum::<E8S>();
+    let my_rewards = current_user_accounts.iter().map(|account| account.get_accumulated_rewards()).sum::<E8S>();
 
     let my_released_amount = current_user_accounts
       .iter()
-      .filter(|account| {
-        match account.get_status() {
-          StakingAccountStatus::Released => true,
-          _ => false,
-        }
+      .filter(|account| match account.get_status() {
+        StakingAccountStatus::Released => true,
+        _ => false,
       })
       .map(|account| account.get_released_amount())
       .sum::<E8S>();

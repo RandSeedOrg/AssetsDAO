@@ -1,12 +1,17 @@
 use std::{borrow::Cow, collections::BTreeMap};
 
 use candid::{CandidType, Decode, Encode};
-use ic_stable_structures::{storable::Bound, Storable};
+use ic_stable_structures::{Storable, storable::Bound};
 use serde::{Deserialize, Serialize};
 
-use crate::{product::{calc_amount_multiple, instant_win::record::transport_structures::InstantWinPlayRecordVo, BatchId, E4S}, CellIndex, EntityId, TimestampNanos, UserId, E8S};
+use crate::{
+  CellIndex, E8S, EntityId, TimestampNanos, UserId,
+  product::{BatchId, E4S, calc_amount_multiple, instant_win::record::transport_structures::InstantWinPlayRecordVo},
+};
 
-use super::quick_quid_transport_structures::{CardCellPrizeVo, CardDto, RuntimeCellVo, QuickQuidBatchExtraVo, QuickQuidExtraConfigDto, QuickQuidExtraRuntimeVo, RuntimeCardVo};
+use super::quick_quid_transport_structures::{
+  CardCellPrizeVo, CardDto, QuickQuidBatchExtraVo, QuickQuidExtraConfigDto, QuickQuidExtraRuntimeVo, RuntimeCardVo, RuntimeCellVo,
+};
 
 pub type CardCellIndex = u32;
 
@@ -37,25 +42,30 @@ impl RuntimeCard {
     RuntimeCardVo {
       ordinal: self.get_ordinal(),
       // background_url: self.get_background_url(),
-      cells: runtime.get_cells().iter()
-        .skip(self.get_cell_start()).take(self.get_cell_count())
-        .map(|(_, card_cell)| {
-          card_cell.to_vo()
-        }).collect()
+      cells: runtime
+        .get_cells()
+        .iter()
+        .skip(self.get_cell_start())
+        .take(self.get_cell_count())
+        .map(|(_, card_cell)| card_cell.to_vo())
+        .collect(),
     }
   }
 
   /// According to the user currently requested, the current runtime card is converted to vo
-  /// where the card processing will be partially filtered through the caller to avoid the leakage of other people's awards, 
+  /// where the card processing will be partially filtered through the caller to avoid the leakage of other people's awards,
   /// unwindowed prizes and bonuses to the front end
   pub fn to_caller_vo(&self, runtime: &QuickQuidExtraRuntime, caller: &UserId) -> RuntimeCardVo {
     RuntimeCardVo {
       ordinal: self.get_ordinal(),
       // background_url: self.get_background_url(),
-      cells: runtime.get_cells().iter()
+      cells: runtime
+        .get_cells()
+        .iter()
         .skip(self.get_cell_start())
         .take(self.get_cell_count())
-        .map(|(_, card_cell)| card_cell.to_caller_vo(caller)).collect()
+        .map(|(_, card_cell)| card_cell.to_caller_vo(caller))
+        .collect(),
     }
   }
 
@@ -92,7 +102,6 @@ pub struct CardCell {
   /// Additional information in the grid, currently used to store bonus code, may have multiple additional information, currently only bonus code
   pub extra: Option<Vec<CardCellExtra>>,
 }
-
 
 impl CardCell {
   pub fn new(index: CellIndex) -> Self {
@@ -131,13 +140,11 @@ impl CardCell {
     RuntimeCellVo {
       index: self.get_index(),
       bonus_code: match &prize {
-        Some(_) => {
-          match self.get_first_extra() {
-            Some(CardCellExtra::BonusCode(code)) => code,
-            None => "".to_string(),
-          }
+        Some(_) => match self.get_first_extra() {
+          Some(CardCellExtra::BonusCode(code)) => code,
+          None => "".to_string(),
         },
-        None => "".to_string()
+        None => "".to_string(),
       },
       prize,
     }
@@ -317,7 +324,7 @@ impl CardConfig {
   }
 
   pub fn convert_to_runtime_card(&self, ordinal: u32, cell_start: usize) -> RuntimeCard {
-    RuntimeCard::new(ordinal, self.get_background_url(), cell_start,  self.get_cell_count() as usize)
+    RuntimeCard::new(ordinal, self.get_background_url(), cell_start, self.get_cell_count() as usize)
   }
 
   pub fn get_cell_count(&self) -> u16 {
@@ -348,10 +355,11 @@ impl QuickQuidExtraConfig {
     Self {
       bonus_codes: Some(config_dto.bonus_codes.clone()),
       cards: Some(
-        config_dto.cards
-        .iter()
-        .map(|card_dto| CardConfig::new(card_dto.cell_count, card_dto.background_url.clone()))
-        .collect()
+        config_dto
+          .cards
+          .iter()
+          .map(|card_dto| CardConfig::new(card_dto.cell_count, card_dto.background_url.clone()))
+          .collect(),
       ),
     }
   }
@@ -372,10 +380,15 @@ impl QuickQuidExtraConfig {
   }
 
   pub fn get_card_backgrounds(&self) -> Vec<String> {
-    self.cards.clone().unwrap_or_default().iter().map(|card| card.background_url.clone().unwrap_or_default()).collect()
+    self
+      .cards
+      .clone()
+      .unwrap_or_default()
+      .iter()
+      .map(|card| card.background_url.clone().unwrap_or_default())
+      .collect()
   }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType, Default)]
 pub struct QuickQuidExtraRuntime {
@@ -387,13 +400,13 @@ impl QuickQuidExtraRuntime {
   pub fn new() -> Self {
     Self {
       cards: Some(vec![]),
-      cells: Some(BTreeMap::new())
+      cells: Some(BTreeMap::new()),
     }
   }
 
   pub fn to_vo(&self) -> QuickQuidExtraRuntimeVo {
     QuickQuidExtraRuntimeVo {
-      cards: self.get_cards().iter().map(|card| card.to_vo(self)).collect()
+      cards: self.get_cards().iter().map(|card| card.to_vo(self)).collect(),
     }
   }
 
@@ -425,27 +438,42 @@ impl QuickQuidExtraRuntime {
   /// Lock a batch of grids and return the index of the grid that was successfully locked.
   pub fn lock_cells(&mut self, user_id: &UserId, cell_indexes: Vec<CellIndex>, tx: u64) -> Vec<CellIndex> {
     let cells = self.cells.as_mut().unwrap();
-    cell_indexes.iter().filter(|cell_index| {
-      if let Some(cell) = cells.get_mut(cell_index) {
-        return cell.lock(user_id, tx);
-      }
-      return false;
-    }).map(|cell_index| *cell_index).collect()
+    cell_indexes
+      .iter()
+      .filter(|cell_index| {
+        if let Some(cell) = cells.get_mut(cell_index) {
+          return cell.lock(user_id, tx);
+        }
+        return false;
+      })
+      .map(|cell_index| *cell_index)
+      .collect()
   }
 
   /// Unlock a batch of grids and return to the index of the grid that was successfully unlocked.
   pub fn unlock_cells(&mut self, user_id: &UserId, cell_indexes: Vec<CellIndex>, tx: u64) -> Vec<CellIndex> {
     let cells = self.cells.as_mut().unwrap();
-    cell_indexes.iter().filter(|cell_index| {
-      if let Some(cell) = cells.get_mut(cell_index) {
-        cell.unlock(user_id, tx)
-      } else  {
-        false
-      }
-    }).map(|cell_index| *cell_index).collect()
+    cell_indexes
+      .iter()
+      .filter(|cell_index| {
+        if let Some(cell) = cells.get_mut(cell_index) {
+          cell.unlock(user_id, tx)
+        } else {
+          false
+        }
+      })
+      .map(|cell_index| *cell_index)
+      .collect()
   }
 
-  pub fn bind_cells_and_tickets(&mut self, user_id: &UserId, tx: u64, cell_indexes: Vec<CellIndex>, play_records: Vec<InstantWinPlayRecordVo>, ticket_price: E8S) -> Vec<CardCell> {
+  pub fn bind_cells_and_tickets(
+    &mut self,
+    user_id: &UserId,
+    tx: u64,
+    cell_indexes: Vec<CellIndex>,
+    play_records: Vec<InstantWinPlayRecordVo>,
+    ticket_price: E8S,
+  ) -> Vec<CardCell> {
     let cells = self.cells.as_mut().unwrap();
     let mut bind_cells = vec![];
     for (cell_index, play_record) in cell_indexes.iter().zip(play_records.iter()) {
@@ -467,7 +495,7 @@ impl QuickQuidExtraRuntime {
           ic_cdk::println!("Cell [cell_index={}] is not locked by the transaction [tx={}]", cell_index, tx);
           continue;
         }
-        
+
         cell.set_prize(CardCellPrize {
           user_id: Some(play_record.user_id.clone()),
           prize_amount: Some(calc_amount_multiple(ticket_price, play_record.prize_multiple)),
@@ -495,11 +523,11 @@ pub struct QuickQuidBatchExtra {
 
 impl Storable for QuickQuidBatchExtra {
   fn to_bytes(&self) -> Cow<[u8]> {
-      Cow::Owned(Encode!(self).unwrap())
+    Cow::Owned(Encode!(self).unwrap())
   }
 
   fn from_bytes(bytes: Cow<[u8]>) -> Self {
-      Decode!(bytes.as_ref(), Self).unwrap()
+    Decode!(bytes.as_ref(), Self).unwrap()
   }
 
   const BOUND: Bound = Bound::Unbounded;
@@ -531,7 +559,6 @@ impl QuickQuidBatchExtra {
   pub fn update_runtime(&mut self, runtime: QuickQuidExtraRuntime) {
     self.runtime = Some(runtime);
   }
-
 
   pub fn get_batch_id(&self) -> BatchId {
     self.batch_id.clone().unwrap_or_default()

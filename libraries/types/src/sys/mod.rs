@@ -2,8 +2,8 @@ use candid::CandidType;
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
 
-pub mod dict;
 pub mod config;
+pub mod dict;
 
 #[derive(EnumString, Display, Debug, Clone, Serialize, Deserialize, CandidType)]
 pub enum ExteralCanisterLabels {

@@ -1,7 +1,10 @@
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
-use types::{pagination::{PageRequest, PageResponse}, TimestampNanos};
+use types::{
+  TimestampNanos,
+  pagination::{PageRequest, PageResponse},
+};
 
 use super::stable_structures::{EventLog, EventType};
 
@@ -46,7 +49,6 @@ pub enum EventTypeCode {
   /// Rewards are credited
   #[strum(serialize = "11")]
   RewardReceived,
-
 }
 
 impl EventTypeCode {
@@ -124,7 +126,6 @@ pub struct EventLogQueryParams {
   /** End time */
   pub end_time: TimestampNanos,
 }
-
 
 pub type StakingEventLogPageRequest = PageRequest<EventLogQueryParams>;
 pub type StakingEventLogPageResponse = PageResponse<EventLog>;

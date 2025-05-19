@@ -2,12 +2,12 @@ use std::{borrow::Cow, str::FromStr};
 
 use candid::{CandidType, Decode, Encode, Principal};
 use ic_cdk::api::msg_caller;
-use ic_stable_structures::{storable::Bound, Storable};
+use ic_stable_structures::{Storable, storable::Bound};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
-use types::{stable_structures::new_entity_id, EntityId, TimestampNanos, UserId};
+use types::{EntityId, TimestampNanos, UserId, stable_structures::new_entity_id};
 
-use super::{transport_structures::StakingSubscribeAddDto, STAKING_SUBSCRIPTION_ID, STAKING_SUBSCRIPTION_MAP};
+use super::{STAKING_SUBSCRIPTION_ID, STAKING_SUBSCRIPTION_MAP, transport_structures::StakingSubscribeAddDto};
 
 /// Subscribe to scenarios
 #[derive(EnumString, Display, Debug, Clone, Serialize, Deserialize, CandidType, PartialEq)]
@@ -29,7 +29,6 @@ pub struct StakingSubscription {
   pub scene: Option<SubscribeScene>,
   pub created_at: Option<TimestampNanos>,
 }
-
 
 impl StakingSubscription {
   pub fn get_id(&self) -> EntityId {
@@ -79,7 +78,7 @@ impl StakingSubscription {
 
     STAKING_SUBSCRIPTION_MAP.with(|map| {
       let mut map = map.borrow_mut();
-      
+
       map.insert(subscribe.get_id(), subscribe.clone());
 
       Ok(subscribe)

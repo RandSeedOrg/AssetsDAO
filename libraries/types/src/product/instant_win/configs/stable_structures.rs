@@ -2,11 +2,15 @@ use std::borrow::Cow;
 
 use bigdecimal::{BigDecimal, ToPrimitive};
 use candid::{CandidType, Decode, Encode};
-use ic_stable_structures::{storable::Bound, Storable};
+use ic_stable_structures::{Storable, storable::Bound};
 use serde::{Deserialize, Serialize};
-use strum_macros::{EnumString, Display};
+use strum_macros::{Display, EnumString};
 
-use crate::{product::{e4s_to_multiples, E4S}, stable_structures::{new_entity_id, EntityIdGenerator, MetaData}, Crypto, EntityId, Nanoseconds, TicketNo, E8S};
+use crate::{
+  Crypto, E8S, EntityId, Nanoseconds, TicketNo,
+  product::{E4S, e4s_to_multiples},
+  stable_structures::{EntityIdGenerator, MetaData, new_entity_id},
+};
 
 use super::transport_structures::{AddInstantWinConfigDto, InstantWinConfigVo, PrizeVo, UpdateInstantWinConfigDto};
 
@@ -36,7 +40,7 @@ pub struct InstantWinConfig {
 impl InstantWinConfig {
   pub fn new(id_gen: &EntityIdGenerator, add_dto: &AddInstantWinConfigDto) -> Self {
     let id = new_entity_id(id_gen);
-    
+
     let mut config = Self {
       id: Some(id),
       name: Some(add_dto.name.clone()),
@@ -98,12 +102,19 @@ impl InstantWinConfig {
       ticket_price: Some(update_dto.ticket_price),
       total_ticket_count: Some(update_dto.total_ticket_count),
       show_remaining_win_tickets: Some(update_dto.show_remaining_win_tickets),
-      prizes: Some(update_dto.prizes.clone().iter().map(|item| Prize { 
-        ticket_count: Some(item.ticket_count), 
-        multiples: Some(item.multiples), 
-        preset_tickets: Some(item.preset_tickets.clone()),
-        col_span: Some(item.col_span),
-      }).collect()),
+      prizes: Some(
+        update_dto
+          .prizes
+          .clone()
+          .iter()
+          .map(|item| Prize {
+            ticket_count: Some(item.ticket_count),
+            multiples: Some(item.multiples),
+            preset_tickets: Some(item.preset_tickets.clone()),
+            col_span: Some(item.col_span),
+          })
+          .collect(),
+      ),
       duration: Some(update_dto.duration),
       auto_start_next: Some(update_dto.auto_start_next),
       mode: Some(update_dto.mode.clone().parse().unwrap_or(CloseMode::NoTicket)),
@@ -148,8 +159,24 @@ impl InstantWinConfig {
 
   fn calc_prices(&mut self) -> &Self {
     let total_price = BigDecimal::from(self.total_ticket_count.unwrap()) * BigDecimal::from(self.ticket_price.unwrap());
-    let total_prize_amounts = self.prizes.clone().unwrap_or_default().iter().map(|prize| BigDecimal::from(prize.ticket_count.unwrap_or_default()) * e4s_to_multiples(prize.multiples.unwrap_or_default()) * BigDecimal::from(self.ticket_price.unwrap_or_default())).sum::<BigDecimal>();
-    let total_prize_ticket_count = self.prizes.clone().unwrap_or_default().iter().map(|prize| BigDecimal::from(prize.ticket_count.unwrap_or_default())).sum::<BigDecimal>();
+    let total_prize_amounts = self
+      .prizes
+      .clone()
+      .unwrap_or_default()
+      .iter()
+      .map(|prize| {
+        BigDecimal::from(prize.ticket_count.unwrap_or_default())
+          * e4s_to_multiples(prize.multiples.unwrap_or_default())
+          * BigDecimal::from(self.ticket_price.unwrap_or_default())
+      })
+      .sum::<BigDecimal>();
+    let total_prize_ticket_count = self
+      .prizes
+      .clone()
+      .unwrap_or_default()
+      .iter()
+      .map(|prize| BigDecimal::from(prize.ticket_count.unwrap_or_default()))
+      .sum::<BigDecimal>();
     self.total_price = Some(total_price.to_u64().unwrap_or_default());
     self.total_prize_amounts = Some(total_prize_amounts.to_u64().unwrap_or_default());
     self.payout = Some((total_prize_amounts / total_price).to_string());
@@ -177,7 +204,7 @@ impl Prize {
       col_span: self.col_span.unwrap_or(1),
     }
   }
-  
+
   pub fn from_vo(vo: &PrizeVo) -> Self {
     Self {
       ticket_count: Some(vo.ticket_count),
@@ -197,14 +224,13 @@ pub enum CloseMode {
   NoWinTicket,
 }
 
-
 impl Storable for InstantWinConfig {
   fn to_bytes(&self) -> Cow<[u8]> {
-      Cow::Owned(Encode!(self).unwrap())
+    Cow::Owned(Encode!(self).unwrap())
   }
 
   fn from_bytes(bytes: Cow<[u8]>) -> Self {
-      Decode!(bytes.as_ref(), Self).unwrap()
+    Decode!(bytes.as_ref(), Self).unwrap()
   }
 
   const BOUND: Bound = Bound::Unbounded;
@@ -212,11 +238,11 @@ impl Storable for InstantWinConfig {
 
 impl Storable for Prize {
   fn to_bytes(&self) -> Cow<[u8]> {
-      Cow::Owned(Encode!(self).unwrap())
+    Cow::Owned(Encode!(self).unwrap())
   }
 
   fn from_bytes(bytes: Cow<[u8]>) -> Self {
-      Decode!(bytes.as_ref(), Self).unwrap()
+    Decode!(bytes.as_ref(), Self).unwrap()
   }
 
   const BOUND: Bound = Bound::Unbounded;

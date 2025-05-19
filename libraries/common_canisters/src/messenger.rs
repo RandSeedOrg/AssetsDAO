@@ -1,17 +1,25 @@
 // This is an experimental feature to generate Rust binding from Candid.
 // You may want to manually adjust some of the types.
 #![allow(dead_code, unused_imports, deprecated)]
-use candid::{self, CandidType, Deserialize, Principal, Encode, Decode};
+use candid::{self, CandidType, Decode, Deserialize, Encode, Principal};
 use ic_cdk::api::call::CallResult as Result;
 
 #[derive(CandidType, Deserialize)]
-pub enum Result_ { Ok(u64), Err(String) }
+pub enum Result_ {
+  Ok(u64),
+  Err(String),
+}
 
 #[derive(CandidType, Deserialize)]
-pub enum Result1 { Ok, Err(String) }
+pub enum Result1 {
+  Ok,
+  Err(String),
+}
 
 #[derive(CandidType, Deserialize)]
-pub struct MessageCommon { pub content: String }
+pub struct MessageCommon {
+  pub content: String,
+}
 
 #[derive(CandidType, Deserialize)]
 pub struct NotificationInfo {
@@ -22,7 +30,12 @@ pub struct NotificationInfo {
 }
 
 #[derive(CandidType, Deserialize)]
-pub enum SendingMethod { Email, Comment, InApp, Browser }
+pub enum SendingMethod {
+  Email,
+  Comment,
+  InApp,
+  Browser,
+}
 
 #[derive(CandidType, Deserialize)]
 pub struct CreateMessageDto {
@@ -32,7 +45,10 @@ pub struct CreateMessageDto {
 }
 
 #[derive(CandidType, Deserialize)]
-pub enum Result2 { Ok(Vec<u64>), Err(String) }
+pub enum Result2 {
+  Ok(Vec<u64>),
+  Err(String),
+}
 
 #[derive(CandidType, Deserialize)]
 pub struct CreateNotificationDto {
@@ -75,17 +91,26 @@ pub struct AllNotificationDetailsVo {
   pub total: u64,
   pub page: u64,
   pub total_pages: u64,
-  pub details: Vec<(u64,Notification,)>,
+  pub details: Vec<(u64, Notification)>,
 }
 
 #[derive(CandidType, Deserialize)]
-pub enum Result3 { Ok(AllNotificationDetailsVo), Err(String) }
+pub enum Result3 {
+  Ok(AllNotificationDetailsVo),
+  Err(String),
+}
 
 #[derive(CandidType, Deserialize)]
-pub enum PropertyValue { U64(u64), Text(String) }
+pub enum PropertyValue {
+  U64(u64),
+  Text(String),
+}
 
 #[derive(CandidType, Deserialize)]
-pub struct PropertiesDto { pub prop: PropertyValue, pub timestamp: u64 }
+pub struct PropertiesDto {
+  pub prop: PropertyValue,
+  pub timestamp: u64,
+}
 
 #[derive(CandidType, Deserialize)]
 pub struct BadgeNameWithPropsVo {
@@ -94,7 +119,10 @@ pub struct BadgeNameWithPropsVo {
 }
 
 #[derive(CandidType, Deserialize)]
-pub enum Result4 { Ok(Vec<(String,Vec<BadgeNameWithPropsVo>,)>), Err(String) }
+pub enum Result4 {
+  Ok(Vec<(String, Vec<BadgeNameWithPropsVo>)>),
+  Err(String),
+}
 
 #[derive(CandidType, Deserialize)]
 pub struct EmailConfigs {
@@ -112,7 +140,10 @@ pub struct EmailConfigs {
 }
 
 #[derive(CandidType, Deserialize)]
-pub enum Result5 { Ok(EmailConfigs), Err(String) }
+pub enum Result5 {
+  Ok(EmailConfigs),
+  Err(String),
+}
 
 #[derive(CandidType, Deserialize)]
 pub struct NotificationDetailVo {
@@ -127,7 +158,10 @@ pub struct NotificationDetailVo {
 }
 
 #[derive(CandidType, Deserialize)]
-pub enum Result6 { Ok(NotificationDetailVo), Err(String) }
+pub enum Result6 {
+  Ok(NotificationDetailVo),
+  Err(String),
+}
 
 #[derive(CandidType, Deserialize)]
 pub struct TypeAvatarPair {
@@ -165,13 +199,22 @@ pub struct PublishHistoryPage {
 }
 
 #[derive(CandidType, Deserialize)]
-pub enum Result7 { Ok(PublishHistoryPage), Err(String) }
+pub enum Result7 {
+  Ok(PublishHistoryPage),
+  Err(String),
+}
 
 #[derive(CandidType, Deserialize)]
-pub enum Result8 { Ok(String), Err(String) }
+pub enum Result8 {
+  Ok(String),
+  Err(String),
+}
 
 #[derive(CandidType, Deserialize)]
-pub enum Result9 { Ok(Vec<BadgeNameWithPropsVo>), Err(String) }
+pub enum Result9 {
+  Ok(Vec<BadgeNameWithPropsVo>),
+  Err(String),
+}
 
 #[derive(CandidType, Deserialize)]
 pub struct UserInfo {
@@ -207,7 +250,10 @@ pub struct NotificationSummaryVo {
 }
 
 #[derive(CandidType, Deserialize)]
-pub enum Result10 { Ok(NotificationSummaryVo), Err(String) }
+pub enum Result10 {
+  Ok(NotificationSummaryVo),
+  Err(String),
+}
 
 #[derive(CandidType, Deserialize)]
 pub struct UserRolePermissionVo {
@@ -218,10 +264,16 @@ pub struct UserRolePermissionVo {
 }
 
 #[derive(CandidType, Deserialize)]
-pub struct UserNotificationKey { pub notify_id: u64, pub publish_id: u64 }
+pub struct UserNotificationKey {
+  pub notify_id: u64,
+  pub publish_id: u64,
+}
 
 #[derive(CandidType, Deserialize)]
-pub enum Result11 { Ok(bool), Err(String) }
+pub enum Result11 {
+  Ok(bool),
+  Err(String),
+}
 
 #[derive(CandidType, Deserialize)]
 pub struct PublishNotificationDto {
@@ -231,7 +283,10 @@ pub struct PublishNotificationDto {
 }
 
 #[derive(CandidType, Deserialize)]
-pub struct DailyTotal { pub count: u32, pub last_reset_date: u64 }
+pub struct DailyTotal {
+  pub count: u32,
+  pub last_reset_date: u64,
+}
 
 #[derive(CandidType, Deserialize)]
 pub struct VerifyInfo {
@@ -242,7 +297,10 @@ pub struct VerifyInfo {
 }
 
 #[derive(CandidType, Deserialize)]
-pub enum Result12 { Ok(VerifyInfo), Err(String) }
+pub enum Result12 {
+  Ok(VerifyInfo),
+  Err(String),
+}
 
 #[derive(CandidType, Deserialize)]
 pub struct LatestVerifyResult {
@@ -253,7 +311,10 @@ pub struct LatestVerifyResult {
 }
 
 #[derive(CandidType, Deserialize)]
-pub enum Result13 { Ok(LatestVerifyResult), Err(String) }
+pub enum Result13 {
+  Ok(LatestVerifyResult),
+  Err(String),
+}
 
 #[derive(CandidType, Deserialize)]
 pub struct VerifyEmailVo {
@@ -267,16 +328,28 @@ pub struct VerifyEmailVo {
 }
 
 #[derive(CandidType, Deserialize)]
-pub enum Result14 { Ok(VerifyEmailVo), Err(String) }
+pub enum Result14 {
+  Ok(VerifyEmailVo),
+  Err(String),
+}
 
 #[derive(CandidType, Deserialize)]
-pub enum Result15 { Ok(u64,Vec<(String,u16,)>,), Err(String) }
+pub enum Result15 {
+  Ok(u64, Vec<(String, u16)>),
+  Err(String),
+}
 
 #[derive(CandidType, Deserialize)]
-pub enum Result16 { Ok(Vec<VerifyEmailVo>), Err(String) }
+pub enum Result16 {
+  Ok(Vec<VerifyEmailVo>),
+  Err(String),
+}
 
 #[derive(CandidType, Deserialize)]
-pub struct HttpHeader { pub value: String, pub name: String }
+pub struct HttpHeader {
+  pub value: String,
+  pub name: String,
+}
 
 #[derive(CandidType, Deserialize)]
 pub struct HttpResponse {
@@ -338,17 +411,15 @@ pub struct SystemConfig {
 }
 
 #[derive(CandidType, Deserialize)]
-pub struct BadgeWithProps { pub badge: u64, pub props: Option<PropertiesDto> }
+pub struct BadgeWithProps {
+  pub badge: u64,
+  pub props: Option<PropertiesDto>,
+}
 
 pub struct Service(pub Principal);
 impl Service {
-  pub async fn batch_delete_unpublished_notifications(
-    &self,
-    arg0: Vec<u64>,
-  ) -> Result<(Result_,)> {
-    ic_cdk::call(self.0, "batch_delete_unpublished_notifications", (
-      arg0,
-    )).await
+  pub async fn batch_delete_unpublished_notifications(&self, arg0: Vec<u64>) -> Result<(Result_,)> {
+    ic_cdk::call(self.0, "batch_delete_unpublished_notifications", (arg0,)).await
   }
   pub async fn cancel_publish(&self, arg0: u64) -> Result<(Result1,)> {
     ic_cdk::call(self.0, "cancel_publish", (arg0,)).await
@@ -359,22 +430,14 @@ impl Service {
   pub async fn clear_uesr_info(&self) -> Result<(Result1,)> {
     ic_cdk::call(self.0, "clear_uesr_info", ()).await
   }
-  pub async fn create_message(&self, arg0: CreateMessageDto) -> Result<
-    (Result2,)
-  > { ic_cdk::call(self.0, "create_message", (arg0,)).await }
-  pub async fn create_notification(
-    &self,
-    arg0: CreateNotificationDto,
-  ) -> Result<(Result_,)> {
+  pub async fn create_message(&self, arg0: CreateMessageDto) -> Result<(Result2,)> {
+    ic_cdk::call(self.0, "create_message", (arg0,)).await
+  }
+  pub async fn create_notification(&self, arg0: CreateNotificationDto) -> Result<(Result_,)> {
     ic_cdk::call(self.0, "create_notification", (arg0,)).await
   }
-  pub async fn get_all_notifications(
-    &self,
-    arg0: Option<String>,
-    arg1: Option<u64>,
-    arg2: Option<u64>,
-  ) -> Result<(Result3,)> {
-    ic_cdk::call(self.0, "get_all_notifications", (arg0,arg1,arg2,)).await
+  pub async fn get_all_notifications(&self, arg0: Option<String>, arg1: Option<u64>, arg2: Option<u64>) -> Result<(Result3,)> {
+    ic_cdk::call(self.0, "get_all_notifications", (arg0, arg1, arg2)).await
   }
   pub async fn get_all_user_badges(&self) -> Result<(Result4,)> {
     ic_cdk::call(self.0, "get_all_user_badges", ()).await
@@ -388,14 +451,8 @@ impl Service {
   pub async fn get_notify_config(&self) -> Result<(NotifyConfigs,)> {
     ic_cdk::call(self.0, "get_notify_config", ()).await
   }
-  pub async fn get_publish_history(
-    &self,
-    arg0: Option<u64>,
-    arg1: Option<bool>,
-    arg2: Option<u64>,
-    arg3: Option<u64>,
-  ) -> Result<(Result7,)> {
-    ic_cdk::call(self.0, "get_publish_history", (arg0,arg1,arg2,arg3,)).await
+  pub async fn get_publish_history(&self, arg0: Option<u64>, arg1: Option<bool>, arg2: Option<u64>, arg3: Option<u64>) -> Result<(Result7,)> {
+    ic_cdk::call(self.0, "get_publish_history", (arg0, arg1, arg2, arg3)).await
   }
   pub async fn get_uesr_name(&self, arg0: u64) -> Result<(Result8,)> {
     ic_cdk::call(self.0, "get_uesr_name", (arg0,)).await
@@ -403,124 +460,77 @@ impl Service {
   pub async fn get_user_badges(&self, arg0: String) -> Result<(Result9,)> {
     ic_cdk::call(self.0, "get_user_badges", (arg0,)).await
   }
-  pub async fn get_user_info(&self, arg0: Option<String>) -> Result<
-    (Vec<(String,UserInfo,)>,)
-  > { ic_cdk::call(self.0, "get_user_info", (arg0,)).await }
-  pub async fn get_user_notifications(
-    &self,
-    arg0: Option<String>,
-    arg1: Option<u64>,
-    arg2: Option<u64>,
-  ) -> Result<(Result10,)> {
-    ic_cdk::call(self.0, "get_user_notifications", (arg0,arg1,arg2,)).await
+  pub async fn get_user_info(&self, arg0: Option<String>) -> Result<(Vec<(String, UserInfo)>,)> {
+    ic_cdk::call(self.0, "get_user_info", (arg0,)).await
   }
-  pub async fn get_user_role_permissions(&self) -> Result<
-    (Vec<UserRolePermissionVo>,)
-  > { ic_cdk::call(self.0, "get_user_role_permissions", ()).await }
-  pub async fn import_user_info(&self, arg0: Vec<(String,UserInfo,)>) -> Result<
-    (Result1,)
-  > { ic_cdk::call(self.0, "import_user_info", (arg0,)).await }
-  pub async fn mark_as_delete(
-    &self,
-    arg0: Option<Vec<UserNotificationKey>>,
-  ) -> Result<(Result1,)> {
+  pub async fn get_user_notifications(&self, arg0: Option<String>, arg1: Option<u64>, arg2: Option<u64>) -> Result<(Result10,)> {
+    ic_cdk::call(self.0, "get_user_notifications", (arg0, arg1, arg2)).await
+  }
+  pub async fn get_user_role_permissions(&self) -> Result<(Vec<UserRolePermissionVo>,)> {
+    ic_cdk::call(self.0, "get_user_role_permissions", ()).await
+  }
+  pub async fn import_user_info(&self, arg0: Vec<(String, UserInfo)>) -> Result<(Result1,)> {
+    ic_cdk::call(self.0, "import_user_info", (arg0,)).await
+  }
+  pub async fn mark_as_delete(&self, arg0: Option<Vec<UserNotificationKey>>) -> Result<(Result1,)> {
     ic_cdk::call(self.0, "mark_as_delete", (arg0,)).await
   }
-  pub async fn mark_as_read(
-    &self,
-    arg0: Option<Vec<UserNotificationKey>>,
-  ) -> Result<(Result1,)> {
+  pub async fn mark_as_read(&self, arg0: Option<Vec<UserNotificationKey>>) -> Result<(Result1,)> {
     ic_cdk::call(self.0, "mark_as_read", (arg0,)).await
   }
-  pub async fn modify_email_update_badge(
-    &self,
-    arg0: String,
-    arg1: String,
-  ) -> Result<(Result11,)> {
-    ic_cdk::call(self.0, "modify_email_update_badge", (arg0,arg1,)).await
+  pub async fn modify_email_update_badge(&self, arg0: String, arg1: String) -> Result<(Result11,)> {
+    ic_cdk::call(self.0, "modify_email_update_badge", (arg0, arg1)).await
   }
-  pub async fn publish_notification(
-    &self,
-    arg0: PublishNotificationDto,
-  ) -> Result<(Result_,)> {
+  pub async fn publish_notification(&self, arg0: PublishNotificationDto) -> Result<(Result_,)> {
     ic_cdk::call(self.0, "publish_notification", (arg0,)).await
   }
   pub async fn query_daily_total(&self) -> Result<(DailyTotal,)> {
     ic_cdk::call(self.0, "query_daily_total", ()).await
   }
-  pub async fn query_intermediate_verify_info(&self, arg0: String) -> Result<
-    (Result12,)
-  > { ic_cdk::call(self.0, "query_intermediate_verify_info", (arg0,)).await }
-  pub async fn query_latest_verify_result(&self, arg0: String) -> Result<
-    (Result13,)
-  > { ic_cdk::call(self.0, "query_latest_verify_result", (arg0,)).await }
-  pub async fn query_verify_email_by_id(&self, arg0: u64) -> Result<
-    (Result14,)
-  > { ic_cdk::call(self.0, "query_verify_email_by_id", (arg0,)).await }
-  pub async fn query_verify_email_statistics(
-    &self,
-    arg0: Option<u64>,
-    arg1: Option<u64>,
-  ) -> Result<(Result15,)> {
-    ic_cdk::call(self.0, "query_verify_email_statistics", (arg0,arg1,)).await
+  pub async fn query_intermediate_verify_info(&self, arg0: String) -> Result<(Result12,)> {
+    ic_cdk::call(self.0, "query_intermediate_verify_info", (arg0,)).await
   }
-  pub async fn query_verify_history(&self, arg0: String) -> Result<
-    (Result16,)
-  > { ic_cdk::call(self.0, "query_verify_history", (arg0,)).await }
+  pub async fn query_latest_verify_result(&self, arg0: String) -> Result<(Result13,)> {
+    ic_cdk::call(self.0, "query_latest_verify_result", (arg0,)).await
+  }
+  pub async fn query_verify_email_by_id(&self, arg0: u64) -> Result<(Result14,)> {
+    ic_cdk::call(self.0, "query_verify_email_by_id", (arg0,)).await
+  }
+  pub async fn query_verify_email_statistics(&self, arg0: Option<u64>, arg1: Option<u64>) -> Result<(Result15,)> {
+    ic_cdk::call(self.0, "query_verify_email_statistics", (arg0, arg1)).await
+  }
+  pub async fn query_verify_history(&self, arg0: String) -> Result<(Result16,)> {
+    ic_cdk::call(self.0, "query_verify_history", (arg0,)).await
+  }
   pub async fn resend(&self, arg0: String) -> Result<(Result1,)> {
     ic_cdk::call(self.0, "resend", (arg0,)).await
   }
-  pub async fn send_http_post_request(
-    &self,
-    arg0: String,
-    arg1: String,
-    arg2: String,
-    arg3: String,
-  ) -> Result<(Result1,)> {
-    ic_cdk::call(self.0, "send_http_post_request", (arg0,arg1,arg2,arg3,)).await
+  pub async fn send_http_post_request(&self, arg0: String, arg1: String, arg2: String, arg3: String) -> Result<(Result1,)> {
+    ic_cdk::call(self.0, "send_http_post_request", (arg0, arg1, arg2, arg3)).await
   }
-  pub async fn send_verify_email(
-    &self,
-    arg0: Option<u64>,
-    arg1: Option<String>,
-    arg2: Option<String>,
-    arg3: String,
-  ) -> Result<(Result1,)> {
-    ic_cdk::call(self.0, "send_verify_email", (arg0,arg1,arg2,arg3,)).await
+  pub async fn send_verify_email(&self, arg0: Option<u64>, arg1: Option<String>, arg2: Option<String>, arg3: String) -> Result<(Result1,)> {
+    ic_cdk::call(self.0, "send_verify_email", (arg0, arg1, arg2, arg3)).await
   }
   pub async fn setup_subscribe(&self, arg0: Principal) -> Result<(String,)> {
     ic_cdk::call(self.0, "setup_subscribe", (arg0,)).await
   }
-  pub async fn transform(&self, arg0: TransformArgs) -> Result<
-    (HttpResponse,)
-  > { ic_cdk::call(self.0, "transform", (arg0,)).await }
-  pub async fn update_email_config(
-    &self,
-    arg0: EmailConfigsUpdateDto,
-  ) -> Result<(Result1,)> {
+  pub async fn transform(&self, arg0: TransformArgs) -> Result<(HttpResponse,)> {
+    ic_cdk::call(self.0, "transform", (arg0,)).await
+  }
+  pub async fn update_email_config(&self, arg0: EmailConfigsUpdateDto) -> Result<(Result1,)> {
     ic_cdk::call(self.0, "update_email_config", (arg0,)).await
   }
-  pub async fn update_notification(
-    &self,
-    arg0: u64,
-    arg1: UpdateNotificationDto,
-  ) -> Result<(Result1,)> {
-    ic_cdk::call(self.0, "update_notification", (arg0,arg1,)).await
+  pub async fn update_notification(&self, arg0: u64, arg1: UpdateNotificationDto) -> Result<(Result1,)> {
+    ic_cdk::call(self.0, "update_notification", (arg0, arg1)).await
   }
-  pub async fn update_notify_config(&self, arg0: NotifyConfigs) -> Result<
-    (Result1,)
-  > { ic_cdk::call(self.0, "update_notify_config", (arg0,)).await }
+  pub async fn update_notify_config(&self, arg0: NotifyConfigs) -> Result<(Result1,)> {
+    ic_cdk::call(self.0, "update_notify_config", (arg0,)).await
+  }
   pub async fn update_system_configs(&self, arg0: SystemConfig) -> Result<()> {
     ic_cdk::call(self.0, "update_system_configs", (arg0,)).await
   }
-  pub async fn update_user_badges(
-    &self,
-    arg0: String,
-    arg1: u64,
-    arg2: bool,
-    arg3: Option<Vec<BadgeWithProps>>,
-  ) -> Result<(Result1,)> {
-    ic_cdk::call(self.0, "update_user_badges", (arg0,arg1,arg2,arg3,)).await
+  pub async fn update_user_badges(&self, arg0: String, arg1: u64, arg2: bool, arg3: Option<Vec<BadgeWithProps>>) -> Result<(Result1,)> {
+    ic_cdk::call(self.0, "update_user_badges", (arg0, arg1, arg2, arg3)).await
   }
   pub async fn verify_code(&self, arg0: String) -> Result<(Result1,)> {
     ic_cdk::call(self.0, "verify_code", (arg0,)).await

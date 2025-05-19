@@ -1,17 +1,28 @@
 use std::cell::RefCell;
 
-use ic_stable_structures::{memory_manager::MemoryId, StableBTreeMap, Cell};
+use ic_stable_structures::{Cell, StableBTreeMap, memory_manager::MemoryId};
 use stable_key::StakingAccountUserRewardDateIndexKey;
 use stable_structures::StakingReward;
-use types::{entities::EntityIndex, stable_structures::Memory, staking::{StakingAccountId, StakingPoolId, StakingRewardId}, EntityId, UserId};
+use types::{
+  EntityId, UserId,
+  entities::EntityIndex,
+  stable_structures::Memory,
+  staking::{StakingAccountId, StakingPoolId, StakingRewardId},
+};
 
-use crate::{memory_ids::{STAKING_ACCOUNT_REWARD_INDEX, STAKING_POOL_REWARD_INDEX, STAKING_REWARD, STAKING_REWARD_SEQ, STAKING_USER_ACCOUNT_REWARD_DATE_INDEX, STAKING_USER_REWARD_INDEX}, MEMORY_MANAGER};
+use crate::{
+  MEMORY_MANAGER,
+  memory_ids::{
+    STAKING_ACCOUNT_REWARD_INDEX, STAKING_POOL_REWARD_INDEX, STAKING_REWARD, STAKING_REWARD_SEQ, STAKING_USER_ACCOUNT_REWARD_DATE_INDEX,
+    STAKING_USER_REWARD_INDEX,
+  },
+};
 
+pub mod crud;
+pub mod stable_key;
 pub mod stable_structures;
 pub mod transport_structures;
 pub mod utils;
-pub mod stable_key;
-pub mod crud;
 
 thread_local! {
   /// stake rewards increaseIDGenerator

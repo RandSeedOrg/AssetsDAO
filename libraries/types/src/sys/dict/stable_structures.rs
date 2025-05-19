@@ -1,12 +1,18 @@
 use std::borrow::Cow;
 
 use candid::{CandidType, Decode, Encode};
-use ic_stable_structures::{storable::Bound, Storable};
+use ic_stable_structures::{Storable, storable::Bound};
 use serde::{Deserialize, Serialize};
 
-use crate::{stable_structures::{new_entity_id, EntityIdGenerator}, EntityId};
+use crate::{
+  EntityId,
+  stable_structures::{EntityIdGenerator, new_entity_id},
+};
 
-use super::{transfer_structures::{AddDictDto, DictItemVo, DictItemsDto, DictVo, UpdateDictDto}, DictCode};
+use super::{
+  DictCode,
+  transfer_structures::{AddDictDto, DictItemVo, DictItemsDto, DictVo, UpdateDictDto},
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub struct Dict {
@@ -19,11 +25,11 @@ pub struct Dict {
 
 impl Storable for Dict {
   fn to_bytes(&self) -> Cow<[u8]> {
-      Cow::Owned(Encode!(self).unwrap())
+    Cow::Owned(Encode!(self).unwrap())
   }
 
   fn from_bytes(bytes: Cow<[u8]>) -> Self {
-      Decode!(bytes.as_ref(), Self).unwrap()
+    Decode!(bytes.as_ref(), Self).unwrap()
   }
 
   const BOUND: Bound = Bound::Unbounded;
@@ -68,12 +74,18 @@ impl Dict {
       name: self.name.clone(),
       code: self.code.clone(),
       description: self.description.clone(),
-      items: Some(items_dto.items.iter().map(|item| DictItem {
-        label: Some(item.label.clone()),
-        value: Some(item.value.clone()),
-        description: Some(item.description.clone()),
-        sort: Some(item.sort),
-      }).collect::<Vec<_>>()),
+      items: Some(
+        items_dto
+          .items
+          .iter()
+          .map(|item| DictItem {
+            label: Some(item.label.clone()),
+            value: Some(item.value.clone()),
+            description: Some(item.description.clone()),
+            sort: Some(item.sort),
+          })
+          .collect::<Vec<_>>(),
+      ),
     }
   }
 
@@ -83,16 +95,21 @@ impl Dict {
       name: self.name.clone().unwrap_or_default(),
       code: self.code.clone().unwrap_or_default(),
       description: self.description.clone().unwrap_or_default(),
-      items: self.items.clone().unwrap_or_default().iter().map(|item| DictItemVo {
-        label: item.label.clone().unwrap_or_default(),
-        value: item.value.clone().unwrap_or_default(),
-        description: item.description.clone().unwrap_or_default(),
-        sort: item.sort.unwrap_or_default(),
-      }).collect::<Vec<_>>(),
+      items: self
+        .items
+        .clone()
+        .unwrap_or_default()
+        .iter()
+        .map(|item| DictItemVo {
+          label: item.label.clone().unwrap_or_default(),
+          value: item.value.clone().unwrap_or_default(),
+          description: item.description.clone().unwrap_or_default(),
+          sort: item.sort.unwrap_or_default(),
+        })
+        .collect::<Vec<_>>(),
     }
   }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub struct DictItem {
@@ -104,11 +121,11 @@ pub struct DictItem {
 
 impl Storable for DictItem {
   fn to_bytes(&self) -> Cow<[u8]> {
-      Cow::Owned(Encode!(self).unwrap())
+    Cow::Owned(Encode!(self).unwrap())
   }
 
   fn from_bytes(bytes: Cow<[u8]>) -> Self {
-      Decode!(bytes.as_ref(), Self).unwrap()
+    Decode!(bytes.as_ref(), Self).unwrap()
   }
 
   const BOUND: Bound = Bound::Unbounded;

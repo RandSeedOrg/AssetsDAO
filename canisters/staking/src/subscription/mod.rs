@@ -1,13 +1,17 @@
 use std::{cell::RefCell, str::FromStr};
 
 use ic_cdk::api::msg_caller;
-use ic_stable_structures::{memory_manager::MemoryId, Cell, StableBTreeMap};
+use ic_stable_structures::{Cell, StableBTreeMap, memory_manager::MemoryId};
 use stable_structures::{StakingSubscription, SubscribeScene};
 use system_configs_macro::has_permission;
 use transport_structures::{StakingSubscribeAddDto, StakingSubscriptionVo, SubscriptionQueryParams, SubscriptionRequest, SubscriptionResponse};
-use types::{stable_structures::Memory, staking::SubscriptionId, EntityId};
+use types::{EntityId, stable_structures::Memory, staking::SubscriptionId};
 
-use crate::{event_log::transport_structures::SortType, memory_ids::{STAKING_SUBSCRIPTION, STAKING_SUBSCRIPTION_SEQ}, MEMORY_MANAGER};
+use crate::{
+  MEMORY_MANAGER,
+  event_log::transport_structures::SortType,
+  memory_ids::{STAKING_SUBSCRIPTION, STAKING_SUBSCRIPTION_SEQ},
+};
 
 pub mod stable_structures;
 pub mod transport_structures;
@@ -29,9 +33,7 @@ thread_local! {
 fn subscribe_notification(dto: StakingSubscribeAddDto) -> Option<String> {
   match StakingSubscription::add_staking_subscribe(&dto) {
     Ok(_) => None,
-    Err(err) => {
-      Some(format!("Error creating Staking Subscribe: {}", err))
-    }
+    Err(err) => Some(format!("Error creating Staking Subscribe: {}", err)),
   }
 }
 
@@ -42,7 +44,8 @@ fn query_current_user_subscribed(scene: String) -> bool {
   let scene = SubscribeScene::from_str(&scene).unwrap_or(SubscribeScene::CanStake);
 
   STAKING_SUBSCRIPTION_MAP.with(|map| {
-    map.borrow()
+    map
+      .borrow()
       .iter()
       .any(|(_, subscribe)| subscribe.get_user_id() == current_user && subscribe.get_scene() == scene)
   })
@@ -52,10 +55,10 @@ fn query_current_user_subscribed(scene: String) -> bool {
 #[ic_cdk::query]
 #[has_permission("staking::subscription::query")]
 fn query_subscriptions(request: SubscriptionRequest) -> SubscriptionResponse {
-  let SubscriptionRequest { 
-    page, 
-    page_size, 
-    params:  SubscriptionQueryParams {
+  let SubscriptionRequest {
+    page,
+    page_size,
+    params: SubscriptionQueryParams {
       scene,
       email,
       user_id,
@@ -77,28 +80,28 @@ fn query_subscriptions(request: SubscriptionRequest) -> SubscriptionResponse {
     let subscriptions: Vec<StakingSubscription> = map
       .values()
       .into_iter()
-      .filter(|subscribe| { // Filter subscription scenarios
+      .filter(|subscribe| {
+        // Filter subscription scenarios
         if subscribe_scene.is_some() {
           subscribe.get_scene().to_string() == scene
         } else {
           true
         }
       })
-      .filter(|subscribe| { // Filter subscription email
-        if email.len() > 0 {
-          subscribe.get_email().contains(&email)
-        } else {
-          true
-        }
+      .filter(|subscribe| {
+        // Filter subscription email
+        if email.len() > 0 { subscribe.get_email().contains(&email) } else { true }
       })
-      .filter(|subscribe| { // Filter subscribers id
+      .filter(|subscribe| {
+        // Filter subscribers id
         if user_id.len() > 0 {
           subscribe.get_user_id().contains(&user_id)
         } else {
           true
         }
       })
-      .filter(|subscribe| { // Filter subscription time
+      .filter(|subscribe| {
+        // Filter subscription time
         if start_time > 0 && end_time > 0 {
           subscribe.get_created_at() >= start_time && subscribe.get_created_at() <= end_time
         } else {
@@ -106,19 +109,17 @@ fn query_subscriptions(request: SubscriptionRequest) -> SubscriptionResponse {
         }
       })
       .collect();
-    
+
     let total = subscriptions.len() as u32;
     let start: u32 = (page - 1) * page_size;
 
     let subscriptions = match id_sort {
-      SortType::Asc => {
-        subscriptions
+      SortType::Asc => subscriptions
         .iter()
         .skip(start as usize)
         .take(page_size as usize)
         .map(|subscription| StakingSubscriptionVo::from_stable(subscription))
-        .collect()
-      },
+        .collect(),
       SortType::Desc => subscriptions
         .iter()
         .rev()
@@ -128,7 +129,7 @@ fn query_subscriptions(request: SubscriptionRequest) -> SubscriptionResponse {
         .collect(),
     };
 
-    SubscriptionResponse { 
+    SubscriptionResponse {
       total,
       page,
       page_size,

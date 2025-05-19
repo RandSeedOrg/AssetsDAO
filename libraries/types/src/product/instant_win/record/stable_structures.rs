@@ -1,10 +1,10 @@
 use std::borrow::Cow;
 
 use candid::{CandidType, Decode, Encode};
-use ic_stable_structures::{storable::Bound, Storable};
+use ic_stable_structures::{Storable, storable::Bound};
 use serde::{Deserialize, Serialize};
 
-use crate::{product::E4S, stable_structures::MetaData, EntityId, TicketNo, UserId, E8S};
+use crate::{E8S, EntityId, TicketNo, UserId, product::E4S, stable_structures::MetaData};
 
 use super::transport_structures::InstantWinPlayRecordVo;
 
@@ -24,11 +24,11 @@ pub struct InstantWinPlayRecord {
 
 impl Storable for InstantWinPlayRecord {
   fn to_bytes(&self) -> Cow<[u8]> {
-      Cow::Owned(Encode!(self).unwrap())
+    Cow::Owned(Encode!(self).unwrap())
   }
 
   fn from_bytes(bytes: Cow<[u8]>) -> Self {
-      Decode!(bytes.as_ref(), Self).unwrap()
+    Decode!(bytes.as_ref(), Self).unwrap()
   }
 
   const BOUND: Bound = Bound::Unbounded;

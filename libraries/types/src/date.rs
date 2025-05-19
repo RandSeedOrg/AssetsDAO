@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use candid::{CandidType, Decode, Encode};
 use chrono::{DateTime, Datelike};
-use ic_stable_structures::{storable::Bound, Storable};
+use ic_stable_structures::{Storable, storable::Bound};
 use serde::{Deserialize, Serialize};
 
 use crate::TimestampNanos;
@@ -13,7 +13,6 @@ pub const ONE_DAY_NANOS: u64 = 24 * 60 * 60 * 1_000_000_000;
 /// Year, month, day format 20210101
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, CandidType, Default)]
 pub struct YearMonthDay(u16, u8, u8);
-
 
 impl YearMonthDay {
   pub fn new(year: u16, month: u8, day: u8) -> Self {
@@ -35,7 +34,7 @@ impl YearMonthDay {
 
 /// Date range, (start date, end date)
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, CandidType, Default)]
-pub struct  DateRange(YearMonthDay, YearMonthDay);
+pub struct DateRange(YearMonthDay, YearMonthDay);
 
 impl From<TimestampNanos> for YearMonthDay {
   fn from(time: TimestampNanos) -> Self {
@@ -167,11 +166,11 @@ impl IntoIterator for DateRange {
 
 impl Storable for YearMonthDay {
   fn to_bytes(&self) -> Cow<[u8]> {
-      Cow::Owned(Encode!(self).unwrap())
+    Cow::Owned(Encode!(self).unwrap())
   }
 
   fn from_bytes(bytes: Cow<[u8]>) -> Self {
-      Decode!(bytes.as_ref(), Self).unwrap()
+    Decode!(bytes.as_ref(), Self).unwrap()
   }
 
   const BOUND: Bound = Bound::Unbounded;
@@ -179,11 +178,11 @@ impl Storable for YearMonthDay {
 
 impl Storable for DateRange {
   fn to_bytes(&self) -> Cow<[u8]> {
-      Cow::Owned(Encode!(self).unwrap())
+    Cow::Owned(Encode!(self).unwrap())
   }
 
   fn from_bytes(bytes: Cow<[u8]>) -> Self {
-      Decode!(bytes.as_ref(), Self).unwrap()
+    Decode!(bytes.as_ref(), Self).unwrap()
   }
 
   const BOUND: Bound = Bound::Unbounded;

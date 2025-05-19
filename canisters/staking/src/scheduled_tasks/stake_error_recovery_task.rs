@@ -1,4 +1,7 @@
-use crate::{account::{recovery_errors::recover_staking_account_error, STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX_MAP}, parallel_guard::EntryGuard};
+use crate::{
+  account::{STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX_MAP, recovery_errors::recover_staking_account_error},
+  parallel_guard::EntryGuard,
+};
 
 /// Recovery task for error records caused by stake operations
 /// This task checks for unprocessed error records every time it starts，And try to recover them
@@ -8,17 +11,16 @@ pub async fn recover_staking_account_errors() {
 
   // Check for unprocessed error records
   let recoverable_error_account_ids = STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX_MAP.with(|map| {
-      let map = map.borrow();
-      map.iter()
-        .map(|(_, entity_index)| {
-          entity_index.get_entity_ids()
-        })
-        .flatten()
-        .collect::<Vec<_>>()
+    let map = map.borrow();
+    map
+      .iter()
+      .map(|(_, entity_index)| entity_index.get_entity_ids())
+      .flatten()
+      .collect::<Vec<_>>()
   });
 
   ic_cdk::println!("Recoverable error account IDs: {:?}", recoverable_error_account_ids);
-  
+
   for account_id in recoverable_error_account_ids {
     // Try to restore error logs
     match recover_staking_account_error(account_id).await {

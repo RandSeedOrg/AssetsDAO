@@ -1,12 +1,12 @@
 use std::borrow::Cow;
 
 use candid::{CandidType, Decode, Encode};
-use ic_stable_structures::{storable::Bound, Storable};
+use ic_stable_structures::{Storable, storable::Bound};
 use serde::{Deserialize, Serialize};
 
-use crate::{product::BatchState, stable_structures::MetaData, EntityId, Nanoseconds, TimestampNanos, UserId, E8S};
+use crate::{E8S, EntityId, Nanoseconds, TimestampNanos, UserId, product::BatchState, stable_structures::MetaData};
 
-/// Batch describes a cycle of lottery, which is just an abstract description. 
+/// Batch describes a cycle of lottery, which is just an abstract description.
 /// The configuration of the specific lottery is passed in through the generic T
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub struct Batch<T: CandidType> {
@@ -67,7 +67,6 @@ impl<T: CandidType + Serialize + for<'a> Deserialize<'a>> Storable for TicketSal
   const BOUND: Bound = Bound::Unbounded;
 }
 
-
 /// RedemptionOrder is a structure that describes the redemption order of lottery tickets
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub struct RedemptionOrder<T: CandidType> {
@@ -105,11 +104,11 @@ pub struct ProductBatchIndex {
 
 impl Storable for ProductBatchIndex {
   fn to_bytes(&self) -> Cow<[u8]> {
-      Cow::Owned(Encode!(self).unwrap())
+    Cow::Owned(Encode!(self).unwrap())
   }
 
   fn from_bytes(bytes: Cow<[u8]>) -> Self {
-      Decode!(bytes.as_ref(), Self).unwrap()
+    Decode!(bytes.as_ref(), Self).unwrap()
   }
 
   const BOUND: Bound = Bound::Unbounded;
@@ -120,7 +119,6 @@ pub struct BatchData<T: CandidType> {
   pub batch_id: EntityId,
   pub data: Vec<T>,
 }
-
 
 impl<T: CandidType + Serialize + for<'a> Deserialize<'a>> Storable for BatchData<T> {
   fn to_bytes(&self) -> Cow<[u8]> {
@@ -136,9 +134,6 @@ impl<T: CandidType + Serialize + for<'a> Deserialize<'a>> Storable for BatchData
 
 impl<T: CandidType> BatchData<T> {
   pub fn new(batch_id: EntityId, data: Vec<T>) -> Self {
-    Self {
-      batch_id,
-      data,
-    }
+    Self { batch_id, data }
   }
 }

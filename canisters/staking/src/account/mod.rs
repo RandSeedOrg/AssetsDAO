@@ -1,22 +1,34 @@
 use std::cell::RefCell;
 
-use ic_stable_structures::{memory_manager::MemoryId, Cell, StableBTreeMap};
+use ic_stable_structures::{Cell, StableBTreeMap, memory_manager::MemoryId};
 use stable_structures::StakingAccount;
 use system_configs_macro::has_permission;
 use transport_structures::{StakingAccountPageRequest, StakingAccountPageResponse, StakingAccountQueryParams, StakingAccountVo};
-use types::{date::YearMonthDay, entities::{get_indexed_ids, EntityIndex}, stable_structures::Memory, staking::{StakingAccountId, StakingPoolId}, EntityId, UserId};
+use types::{
+  EntityId, UserId,
+  date::YearMonthDay,
+  entities::{EntityIndex, get_indexed_ids},
+  stable_structures::Memory,
+  staking::{StakingAccountId, StakingPoolId},
+};
 
-use crate::{memory_ids::{STAKING_ACCOUNT, STAKING_ACCOUNT_SEQ, STAKING_POOL_ACCOUNT_INDEX, STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX, STAKING_UNSTAKE_ON_DAY_ACCOUNT_INDEX, STAKING_USER_ACCOUNT_INDEX}, MEMORY_MANAGER};
+use crate::{
+  MEMORY_MANAGER,
+  memory_ids::{
+    STAKING_ACCOUNT, STAKING_ACCOUNT_SEQ, STAKING_POOL_ACCOUNT_INDEX, STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX, STAKING_UNSTAKE_ON_DAY_ACCOUNT_INDEX,
+    STAKING_USER_ACCOUNT_INDEX,
+  },
+};
 
-pub mod stable_structures;
-pub mod crud_utils;
-pub mod transport_structures;
+pub mod badge_utils;
 pub mod client_api;
 pub mod client_transport_structures;
-pub mod operation_utils;
+pub mod crud_utils;
 pub mod guard_keys;
+pub mod operation_utils;
 pub mod recovery_errors;
-pub mod badge_utils;
+pub mod stable_structures;
+pub mod transport_structures;
 
 thread_local! {
   /// stake account increasesIDGenerator
@@ -62,15 +74,15 @@ thread_local! {
 #[ic_cdk::query]
 #[has_permission("staking::account::query")]
 fn query_staking_accounts(request: StakingAccountPageRequest) -> StakingAccountPageResponse {
-  let StakingAccountPageRequest { 
-    page, 
-    page_size, 
-    params: StakingAccountQueryParams { 
-      pool_id, 
-      user_id, 
-      onchain_address, 
-      status 
-    } 
+  let StakingAccountPageRequest {
+    page,
+    page_size,
+    params: StakingAccountQueryParams {
+      pool_id,
+      user_id,
+      onchain_address,
+      status,
+    },
   } = request;
 
   // List of accounts filtered by conditions
@@ -81,9 +93,7 @@ fn query_staking_accounts(request: StakingAccountPageRequest) -> StakingAccountP
       let map = map.borrow();
       account_ids
         .iter()
-        .filter_map(|account_id| {
-          map.get(account_id)
-        })
+        .filter_map(|account_id| map.get(account_id))
         .filter(|account| {
           if status.len() > 0 {
             account.get_status().to_string() == status
@@ -110,8 +120,9 @@ fn query_staking_accounts(request: StakingAccountPageRequest) -> StakingAccountP
   } else {
     STAKING_ACCOUNT_MAP.with(|map| {
       let map = map.borrow();
-      
-      map.iter()
+
+      map
+        .iter()
         .map(|(_, account)| account.clone())
         .filter(|account| {
           if status.len() > 0 {
@@ -146,9 +157,7 @@ fn query_staking_accounts(request: StakingAccountPageRequest) -> StakingAccountP
     .rev()
     .skip(start as usize)
     .take(page_size as usize)
-    .map(|account| {
-      StakingAccountVo::from_staking_account(account)
-    })
+    .map(|account| StakingAccountVo::from_staking_account(account))
     .collect::<Vec<StakingAccountVo>>();
 
   StakingAccountPageResponse {
@@ -156,5 +165,5 @@ fn query_staking_accounts(request: StakingAccountPageRequest) -> StakingAccountP
     page: page as u32,
     page_size: page_size as u32,
     records,
-  } 
+  }
 }

@@ -1,10 +1,16 @@
 use candid::Principal;
-use types::{date::YearMonthDay, entities::{add_indexed_id, get_indexed_ids, remove_indexed_id}, staking::{StakingAccountId, StakingPoolId}};
+use types::{
+  date::YearMonthDay,
+  entities::{add_indexed_id, get_indexed_ids, remove_indexed_id},
+  staking::{StakingAccountId, StakingPoolId},
+};
 
 use crate::event_log::staking_account_events::save_delete_staking_account_event_log;
 
-use super::{stable_structures::{StakingAccount, StakingAccountStatus}, STAKING_ACCOUNT_MAP, STAKING_POOL_ACCOUNT_INDEX_MAP, STAKING_UNSTAKE_ON_DAY_ACCOUNT_INDEX_MAP, STAKING_USER_ACCOUNT_INDEX_MAP};
-
+use super::{
+  STAKING_ACCOUNT_MAP, STAKING_POOL_ACCOUNT_INDEX_MAP, STAKING_UNSTAKE_ON_DAY_ACCOUNT_INDEX_MAP, STAKING_USER_ACCOUNT_INDEX_MAP,
+  stable_structures::{StakingAccount, StakingAccountStatus},
+};
 
 /// Query the list of staked accounts of the current session user in the stake pool
 pub fn query_current_user_staking_accounts(pool_id: StakingPoolId) -> Vec<StakingAccount> {
@@ -46,7 +52,6 @@ pub fn query_user_staking_accounts(user_id: String) -> Vec<StakingAccount> {
     return vec![]; // No staking accounts for the user
   }
 
-  
   let accounts = STAKING_ACCOUNT_MAP.with(|map| {
     let map = map.borrow();
     user_account_index
@@ -88,24 +93,26 @@ pub fn query_user_staking_accounts(user_id: String) -> Vec<StakingAccount> {
 
 /// Save the staked account to stable memory
 pub fn save_stake_account_to_stable_memory(staking_account: &StakingAccount) -> Result<StakingAccount, String> {
-  STAKING_ACCOUNT_MAP.with(|map| {
-    let mut map = map.borrow_mut();
-    // Save the staked account to stable memory
-    map.insert(staking_account.get_id(), staking_account.clone());
+  STAKING_ACCOUNT_MAP
+    .with(|map| {
+      let mut map = map.borrow_mut();
+      // Save the staked account to stable memory
+      map.insert(staking_account.get_id(), staking_account.clone());
 
-    STAKING_POOL_ACCOUNT_INDEX_MAP.with(|pool_map| add_indexed_id(pool_map, &staking_account.get_pool_id(), staking_account.get_id()));
-    STAKING_USER_ACCOUNT_INDEX_MAP.with(|user_map| add_indexed_id(user_map, &staking_account.get_owner(), staking_account.get_id()));
-    
-    Ok(staking_account)
-  }).cloned()
+      STAKING_POOL_ACCOUNT_INDEX_MAP.with(|pool_map| add_indexed_id(pool_map, &staking_account.get_pool_id(), staking_account.get_id()));
+      STAKING_USER_ACCOUNT_INDEX_MAP.with(|user_map| add_indexed_id(user_map, &staking_account.get_owner(), staking_account.get_id()));
+
+      Ok(staking_account)
+    })
+    .cloned()
 }
-
 
 /// Query all staking account which status is in stake
 pub fn query_all_in_stake_accounts() -> Vec<StakingAccount> {
   STAKING_ACCOUNT_MAP.with(|map| {
     let map = map.borrow();
-    map.values()
+    map
+      .values()
       .filter(|account| (*account).get_status() == StakingAccountStatus::InStake)
       .collect::<Vec<StakingAccount>>()
   })
@@ -140,12 +147,16 @@ pub fn delete_staking_account(account_id: &StakingAccountId) -> Result<(), Strin
 
     // Staking accounts that are not newly created are not allowed to be deleted，Avoid mistaken deletion
     if staking_account.get_status() != StakingAccountStatus::Created {
-      return Err(format!("Staking account {} is can not be delete, status is {}.", account_id, staking_account.get_status()));
+      return Err(format!(
+        "Staking account {} is can not be delete, status is {}.",
+        account_id,
+        staking_account.get_status()
+      ));
     }
 
     // Delete the staking account
     map.remove(account_id);
-    
+
     // Delete the index
     STAKING_POOL_ACCOUNT_INDEX_MAP.with(|pool_map| remove_indexed_id(pool_map, &staking_account.get_pool_id(), *account_id));
     STAKING_USER_ACCOUNT_INDEX_MAP.with(|user_map| remove_indexed_id(user_map, &staking_account.get_owner(), *account_id));

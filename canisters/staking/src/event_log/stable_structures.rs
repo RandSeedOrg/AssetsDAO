@@ -2,11 +2,19 @@ use std::borrow::Cow;
 
 use candid::{CandidType, Decode, Encode, Principal};
 use ic_ledger_types::BlockIndex;
-use ic_stable_structures::{storable::Bound, Storable};
+use ic_stable_structures::{Storable, storable::Bound};
 use serde::{Deserialize, Serialize};
-use types::{stable_structures::new_entity_id, staking::{StakingAccountId, StakingPoolId}, EntityId, TimestampNanos};
+use types::{
+  EntityId, TimestampNanos,
+  stable_structures::new_entity_id,
+  staking::{StakingAccountId, StakingPoolId},
+};
 
-use crate::{account::stable_structures::StakingAccount, pool::stable_structures::{StakingPool, StakingPoolStatus}, reward::stable_structures::StakingReward};
+use crate::{
+  account::stable_structures::StakingAccount,
+  pool::stable_structures::{StakingPool, StakingPoolStatus},
+  reward::stable_structures::StakingReward,
+};
 
 use super::{STAKING_EVENT_LOG_ID, STAKING_EVENT_LOG_MAP};
 
@@ -60,7 +68,7 @@ impl EventLog {
 
   pub fn save_to_stable_memory(&self) {
     // Save event logs to stable memory
-   STAKING_EVENT_LOG_MAP.with(|map| {
+    STAKING_EVENT_LOG_MAP.with(|map| {
       map.borrow_mut().insert(self.get_id(), self.clone());
     });
   }
@@ -80,14 +88,14 @@ pub type ErrorMessage = String;
 pub enum EventType {
   CreateStakingPool(StakingPool),
   UpdateStakingPool(StakingPool),
-  
+
   CreateStakingAccount(StakingAccount),
   UpdateStakingAccount(StakingAccount),
   DeleteStakingAccount(StakingAccountId),
 
   ChangeStakingPoolStatus(StakingPoolId, StakingPoolStatus),
   ChangeStakingPoolClientVisible(StakingPoolId, bool),
-  
+
   Stake(StakingPool, StakingAccount),
   Unstake(StakingPool, StakingAccount),
   Dissolve(StakingAccount),

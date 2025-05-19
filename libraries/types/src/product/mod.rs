@@ -3,10 +3,10 @@ use candid::CandidType;
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
 
-use crate::{EntityId, E8S};
+use crate::{E8S, EntityId};
 
-pub mod instant_win;
 pub mod base;
+pub mod instant_win;
 
 pub type BatchId = EntityId;
 pub type ProductId = EntityId;
@@ -84,7 +84,8 @@ pub enum TxIdType {
 
 pub fn generate_payment_transaction_id(id_type: TxIdType, product_id: ProductId, batch_id: BatchId, order_id: EntityId) -> Result<EntityId, String> {
   // Make sure each ID is within its own number of digits
-  let tx_id_masked: u64 = match id_type { // 8-bit mask
+  let tx_id_masked: u64 = match id_type {
+    // 8-bit mask
     TxIdType::Play => 1,
     TxIdType::Win => 2,
   };
@@ -107,7 +108,6 @@ pub fn generate_payment_transaction_id(id_type: TxIdType, product_id: ProductId,
   // Generate payment transaction ID
   Ok((tx_id_masked << 56) | (product_id_masked << 36) | (batch_id_masked << 16) | order_id_masked)
 }
-
 
 pub fn generate_staking_reward_payment_transaction_id(order_id: u64) -> Result<EntityId, String> {
   // Make sure each ID is within its own number of digits

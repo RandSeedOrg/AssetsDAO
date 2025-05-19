@@ -2,10 +2,17 @@ use std::borrow::Cow;
 
 use bigdecimal::{BigDecimal, ToPrimitive};
 use candid::{CandidType, Decode, Encode};
-use ic_stable_structures::{storable::Bound, Storable};
+use ic_stable_structures::{Storable, storable::Bound};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
-use types::{date::YearMonthDay, entities::add_indexed_id, product::e8s_to_value, stable_structures::{new_entity_id, MetaData}, staking::{StakingAccountId, StakingRewardId}, EntityId, TimestampNanos, UserId, E8S};
+use types::{
+  E8S, EntityId, TimestampNanos, UserId,
+  date::YearMonthDay,
+  entities::add_indexed_id,
+  product::e8s_to_value,
+  stable_structures::{MetaData, new_entity_id},
+  staking::{StakingAccountId, StakingRewardId},
+};
 
 use crate::{account::stable_structures::StakingAccount, pool::stable_structures::RewardCrypto};
 
@@ -54,9 +61,8 @@ pub enum StakingRewardStatus {
 }
 
 impl StakingReward {
-
   /// Create a new staking reward record
-  pub fn reward_account(account: &StakingAccount)-> (StakingReward, StakingAccount) {
+  pub fn reward_account(account: &StakingAccount) -> (StakingReward, StakingAccount) {
     // 1. generate a new ID for the reward record
     let id = STAKING_REWARD_ID.with(|id_seq| new_entity_id(id_seq));
 
@@ -66,9 +72,8 @@ impl StakingReward {
     // 2.2 Obtain the amount of the stake account
     let staked_amount = account.get_staked_amount();
     // 2.3. Calculate the reward amount
-    let reward_amount = BigDecimal::from(staked_amount)  * e8s_to_value(reward_config.get_daily_interest_rate());
-    
-    
+    let reward_amount = BigDecimal::from(staked_amount) * e8s_to_value(reward_config.get_daily_interest_rate());
+
     // 3. Save stake reward records
     STAKING_REWARD_MAP.with(|map| {
       // 3.1 create a new reward record
@@ -100,7 +105,7 @@ impl StakingReward {
 
   /// Update the reward record to received
   pub fn received(&self, tx_id: u64) -> Result<Self, String> {
-     // Payment completed，renew reward record
+    // Payment completed，renew reward record
     STAKING_REWARD_MAP.with(|map| {
       let mut mut_map = map.borrow_mut();
       let mut reward_record = mut_map.get(&self.get_id()).unwrap();

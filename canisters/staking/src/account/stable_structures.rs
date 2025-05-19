@@ -2,14 +2,27 @@ use std::{borrow::Cow, time::Duration};
 
 use candid::{CandidType, Decode, Encode};
 use ic_ledger_types::BlockIndex;
-use ic_stable_structures::{storable::Bound, Storable};
+use ic_stable_structures::{Storable, storable::Bound};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
-use types::{date::YearMonthDay, entities::{add_indexed_id, remove_indexed_id}, stable_structures::{new_entity_id, MetaData}, staking::StakingAccountId, EntityId, TimestampNanos, UserId, E8S};
+use types::{
+  E8S, EntityId, TimestampNanos, UserId,
+  date::YearMonthDay,
+  entities::{add_indexed_id, remove_indexed_id},
+  stable_structures::{MetaData, new_entity_id},
+  staking::StakingAccountId,
+};
 
-use crate::{on_chain::address::generate_staking_account_chain_address, pool::stable_structures::{RewardConfig, StakingPool}, reward::stable_structures::StakingReward};
+use crate::{
+  on_chain::address::generate_staking_account_chain_address,
+  pool::stable_structures::{RewardConfig, StakingPool},
+  reward::stable_structures::StakingReward,
+};
 
-use super::{client_transport_structures::StakeDto, STAKING_ACCOUNT_ID, STAKING_ACCOUNT_MAP, STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX_MAP, STAKING_UNSTAKE_ON_DAY_ACCOUNT_INDEX_MAP};
+use super::{
+  STAKING_ACCOUNT_ID, STAKING_ACCOUNT_MAP, STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX_MAP, STAKING_UNSTAKE_ON_DAY_ACCOUNT_INDEX_MAP,
+  client_transport_structures::StakeDto,
+};
 
 /// Status of the staked account
 #[derive(EnumString, Display, Debug, Clone, Serialize, Deserialize, CandidType, PartialEq)]
@@ -53,7 +66,7 @@ pub struct StakingAccount {
   pub pool_id: Option<EntityId>,
   /// The owner of the stake account Principal ID
   pub owner: Option<UserId>,
-  /// The on-chain address of stake account 
+  /// The on-chain address of stake account
   pub address: Option<String>,
   /// Released amount in the staked account
   pub released_amount: Option<E8S>,
@@ -105,7 +118,11 @@ pub struct StakingAccount {
 impl StakingAccount {
   /// Create a new staked account
   pub fn from_stake_dto_and_pool(stake_dto: &StakeDto, pool: &StakingPool) -> Self {
-    let StakeDto { pool_id, staking_amount, staking_days } = *stake_dto;
+    let StakeDto {
+      pool_id,
+      staking_amount,
+      staking_days,
+    } = *stake_dto;
     // Generate a stake poolID
     let id = STAKING_ACCOUNT_ID.with(|id_seq| new_entity_id(id_seq));
     let owner = ic_cdk::api::msg_caller().to_string();
@@ -165,7 +182,7 @@ impl StakingAccount {
       let account = map.borrow().get(&id);
       match account {
         Some(account) => Ok(account),
-        None => Err(format!("Staking account not found: {}", id))
+        None => Err(format!("Staking account not found: {}", id)),
       }
     })
   }
@@ -189,12 +206,7 @@ impl StakingAccount {
   }
 
   /// Turn the staked account status from Created Change to InStake
-  pub fn change_to_in_stake(
-    &mut self,
-    stake_pay_center_onchain_tx_id: u64,
-    stake_pay_center_tx_id: u64,
-    stake_account_to_pool_onchain_tx_id: u64,
-  ) {
+  pub fn change_to_in_stake(&mut self, stake_pay_center_onchain_tx_id: u64, stake_pay_center_tx_id: u64, stake_account_to_pool_onchain_tx_id: u64) {
     if self.get_status() != StakingAccountStatus::Created {
       ic_cdk::trap("Staking account is not in Created status");
     }
@@ -214,25 +226,38 @@ impl StakingAccount {
   }
 
   /// Unsolicited Account
-  pub fn change_to_un_stake(&self, unstake_tx_id: u64, release_amount: E8S, penalty_amount: E8S, now: TimestampNanos, penalty_onchain_tx_id: u64, penalty_pay_center_tx_id: u64) -> Result<Self, String> {
+  pub fn change_to_un_stake(
+    &self,
+    unstake_tx_id: u64,
+    release_amount: E8S,
+    penalty_amount: E8S,
+    now: TimestampNanos,
+    penalty_onchain_tx_id: u64,
+    penalty_pay_center_tx_id: u64,
+  ) -> Result<Self, String> {
     STAKING_ACCOUNT_MAP.with(|map| {
       let mut map = map.borrow_mut();
-      
+
       let mut account = map.get(&self.get_id()).ok_or("Staking account not found")?;
       account.status = Some(StakingAccountStatus::Released);
       account.release_onchain_tx_id = Some(unstake_tx_id);
       account.released_amount = Some(release_amount);
       account.penalty_amount = Some(penalty_amount);
       account.release_time = Some(now);
-      account.penalty_onchain_tx_id = if penalty_onchain_tx_id != 0 { Some(penalty_onchain_tx_id)} else { None };
-      account.penalty_pay_center_tx_id = if penalty_pay_center_tx_id != 0 { Some(penalty_pay_center_tx_id)} else { None };
+      account.penalty_onchain_tx_id = if penalty_onchain_tx_id != 0 { Some(penalty_onchain_tx_id) } else { None };
+      account.penalty_pay_center_tx_id = if penalty_pay_center_tx_id != 0 {
+        Some(penalty_pay_center_tx_id)
+      } else {
+        None
+      };
       account.recoverable_error = None;
       account.update_meta();
 
       map.insert(account.get_id(), account.clone());
 
       // When unstake，Remove the staked account from the unstaked date index，Further improve the performance of timing tasks
-      STAKING_UNSTAKE_ON_DAY_ACCOUNT_INDEX_MAP.with(|map| remove_indexed_id(map, &YearMonthDay::from(account.get_stake_deadline()), account.get_id()));
+      STAKING_UNSTAKE_ON_DAY_ACCOUNT_INDEX_MAP
+        .with(|map| remove_indexed_id(map, &YearMonthDay::from(account.get_stake_deadline()), account.get_id()));
 
       Ok(account)
     })
@@ -242,7 +267,7 @@ impl StakingAccount {
   pub fn change_to_dissolved(&self, dissolve_tx_id: u64, pay_center_tx_id: u64) -> Result<Self, String> {
     STAKING_ACCOUNT_MAP.with(|map| {
       let mut map = map.borrow_mut();
-      
+
       let mut account = map.get(&self.get_id()).ok_or("Staking account not found")?;
       account.status = Some(StakingAccountStatus::Dissolved);
       account.dissolve_onchain_tx_id = Some(dissolve_tx_id);
@@ -268,11 +293,7 @@ impl StakingAccount {
       let diff_time = stake_deadline - now;
       let one_day = 24 * 60 * 60 * 1_000_000_000;
       let result = diff_time / one_day;
-      if diff_time % one_day > 0 {
-        result + 1
-      } else {
-        result
-      }
+      if diff_time % one_day > 0 { result + 1 } else { result }
     } else {
       0
     }

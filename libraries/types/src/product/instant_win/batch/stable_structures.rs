@@ -1,6 +1,7 @@
-
-
-use crate::{product::{base::batch::stable_structures::Batch, instant_win::configs::stable_structures::InstantWinConfig, BatchId, BatchState, ProductId}, stable_structures::{new_entity_id, EntityIdGenerator, MetaData}};
+use crate::{
+  product::{BatchId, BatchState, ProductId, base::batch::stable_structures::Batch, instant_win::configs::stable_structures::InstantWinConfig},
+  stable_structures::{EntityIdGenerator, MetaData, new_entity_id},
+};
 
 use super::transport_structures::{AddInstantWinBatchDto, InstantWinBatchVo, UpdateInstantWinBatchDto};
 
@@ -8,9 +9,9 @@ use super::transport_structures::{AddInstantWinBatchDto, InstantWinBatchVo, Upda
 pub type InstantWinBatch = Batch<InstantWinConfig>;
 
 impl InstantWinBatch {
-  pub fn new(id_gen:  &EntityIdGenerator, add_dto: AddInstantWinBatchDto) -> Self {
+  pub fn new(id_gen: &EntityIdGenerator, add_dto: AddInstantWinBatchDto) -> Self {
     let id = new_entity_id(id_gen);
-    
+
     Self {
       id: Some(id),
       product_id: Some(add_dto.product_id),
@@ -21,7 +22,7 @@ impl InstantWinBatch {
       pause_time: None,
       accumulated_pause_time: None,
       end_time: None,
-      meta: Some(MetaData::init_create_scene())
+      meta: Some(MetaData::init_create_scene()),
     }
   }
 

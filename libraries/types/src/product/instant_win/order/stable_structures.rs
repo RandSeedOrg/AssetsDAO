@@ -1,7 +1,14 @@
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
-use crate::{product::{base::batch::stable_structures::{RedemptionOrder, TicketSalesOrder}, instant_win::batch::transport_structures::InstantWinBatchVo}, stable_structures::MetaData, EntityId, TicketNo, UserId, E8S};
+use crate::{
+  E8S, EntityId, TicketNo, UserId,
+  product::{
+    base::batch::stable_structures::{RedemptionOrder, TicketSalesOrder},
+    instant_win::batch::transport_structures::InstantWinBatchVo,
+  },
+  stable_structures::MetaData,
+};
 
 /// InstantWinSalesOrder is a ticket order for instant win lottery
 pub type InstantWinSalesOrder = TicketSalesOrder<TicketNo>;
@@ -46,10 +53,8 @@ pub struct InstantWinPrizeTicket {
 /// InstantWinRedemptionOrder is a redemption order for instant win lottery
 pub type InstantWinRedemptionOrder = RedemptionOrder<InstantWinPrizeTicket>;
 
-
 impl InstantWinRedemptionOrder {
   pub fn new(batch: &InstantWinBatchVo, user_id: &UserId, tickets: Vec<InstantWinPrizeTicket>, prize_amount: E8S, extra: &str) -> Self {
-
     Self {
       id: None,
       product_id: Some(batch.product_id),
@@ -66,6 +71,6 @@ impl InstantWinRedemptionOrder {
   pub fn update_psn(&mut self, psn: u64) -> &mut Self {
     self.psn = Some(psn);
     self.meta = Some(self.meta.clone().unwrap_or(MetaData::init_create_scene()).update());
-    self 
+    self
   }
 }

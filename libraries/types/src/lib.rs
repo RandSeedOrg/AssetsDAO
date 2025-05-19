@@ -1,21 +1,19 @@
-use ic_principal::Principal;
 use candid::CandidType;
-use serde::{Serialize, Deserialize};
+use ic_principal::Principal;
+use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
 
-pub mod stable_structures;
-pub mod product;
-pub mod sys;
+pub mod assets_management;
 pub mod date;
 pub mod entities;
-pub mod pagination;
 pub mod on_chain;
+pub mod pagination;
+pub mod product;
+pub mod stable_structures;
 pub mod staking;
-pub mod assets_management;
-
+pub mod sys;
 
 pub type E8S = u64;
-
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Tokens {

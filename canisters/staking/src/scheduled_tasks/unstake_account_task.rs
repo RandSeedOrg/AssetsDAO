@@ -36,6 +36,6 @@ pub async fn unstake_accounts() {
       }
     };
   }
-  
+
   ic_cdk::println!("Unstake accounts task completed.");
 }

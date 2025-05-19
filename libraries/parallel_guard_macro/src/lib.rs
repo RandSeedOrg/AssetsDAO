@@ -52,4 +52,3 @@ pub fn parallel_guard(_: TokenStream) -> TokenStream {
   }
   .into()
 }
-

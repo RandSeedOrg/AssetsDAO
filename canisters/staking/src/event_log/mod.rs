@@ -1,19 +1,22 @@
 use std::{cell::RefCell, str::FromStr};
 
-use ic_stable_structures::{memory_manager::MemoryId, Cell, StableBTreeMap};
+use ic_stable_structures::{Cell, StableBTreeMap, memory_manager::MemoryId};
 use stable_structures::EventLog;
 use transport_structures::{EventLogQueryParams, EventTypeCode, StakingEventLogPageRequest, StakingEventLogPageResponse};
-use types::{stable_structures::Memory, EntityId};
+use types::{EntityId, stable_structures::Memory};
 
-use crate::{memory_ids::{STAKING_EVENT_LOG, STAKING_EVENT_LOG_SEQ}, MEMORY_MANAGER};
+use crate::{
+  MEMORY_MANAGER,
+  memory_ids::{STAKING_EVENT_LOG, STAKING_EVENT_LOG_SEQ},
+};
 
 pub mod stable_structures;
-pub mod staking_pool_events;
-pub mod staking_account_events;
 pub mod stake_and_unstake_events;
 pub mod stake_reward_events;
-pub mod transport_structures;
+pub mod staking_account_events;
+pub mod staking_pool_events;
 pub mod transfer_events;
+pub mod transport_structures;
 
 thread_local! {
   /// The stake event log is increased automaticallyIDGenerator
@@ -31,9 +34,9 @@ thread_local! {
 /// Query the stake event log，Only check the last two thousand
 #[ic_cdk::query]
 fn query_event_logs(request: StakingEventLogPageRequest) -> StakingEventLogPageResponse {
-  let StakingEventLogPageRequest { 
-    page, 
-    page_size, 
+  let StakingEventLogPageRequest {
+    page,
+    page_size,
     params: EventLogQueryParams {
       event_type,
       start_time,
@@ -62,13 +65,7 @@ fn query_event_logs(request: StakingEventLogPageRequest) -> StakingEventLogPageR
           true
         }
       })
-      .filter(|event_log| {
-        if end_time > 0 {
-          event_log.get_event_time() <= end_time
-        } else {
-          true
-        }
-      })
+      .filter(|event_log| if end_time > 0 { event_log.get_event_time() <= end_time } else { true })
       .collect();
 
     let total = filter_records.len() as u32;
@@ -77,12 +74,7 @@ fn query_event_logs(request: StakingEventLogPageRequest) -> StakingEventLogPageR
       page,
       page_size,
       total,
-      records: filter_records
-        .iter()
-        .skip(start as usize)
-        .take(page_size as usize)
-        .cloned()
-        .collect(),
+      records: filter_records.iter().skip(start as usize).take(page_size as usize).cloned().collect(),
     }
   })
 }

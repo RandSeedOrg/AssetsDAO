@@ -15,25 +15,25 @@ pub fn system_configs(_: TokenStream) -> TokenStream {
       use std::{cell::RefCell, collections::{HashMap, HashSet}};
       use candid::Principal;
       use types::{sys::{config::{PermissionCode, RoleCode, SystemConfig, UserRolePermissionVo}, dict::{transfer_structures::DictVo, DictCode}, ExteralCanisterLabels, SystemSwitches}, UserId};
-      
+
       thread_local! {
         // cache the user role permissions
         static USER_ROLE_PERMISSIONS: RefCell<HashMap<UserId, (bool, HashSet<RoleCode>, HashSet<PermissionCode>)>> = RefCell::new(
           HashMap::new()
         );
-      
+
         // cache the dictionary
         static DICT: RefCell<HashMap<DictCode, DictVo>> = RefCell::new(
           HashMap::new()
         );
       }
-      
+
       #[ic_cdk::update]
       pub async fn setup_subscribe(admin: Principal) -> String {
         if !caller_is_controller().await {
           return String::from("Setup subscribe failed: caller is not a controller!");
         }
-      
+
         match ic_cdk::call::Call::unbounded_wait(admin, "subscribe").await {
           Ok(_) => {
             String::from("Subscribed successfully")
@@ -43,31 +43,30 @@ pub fn system_configs(_: TokenStream) -> TokenStream {
           }
         }
       }
-      
+
       #[ic_cdk::update]
       pub async fn update_system_configs(config: SystemConfig) -> () {
         if !caller_is_controller().await {
           ic_cdk::trap("Update system configs failed : caller is not a controller!");
         }
-      
+
         USER_ROLE_PERMISSIONS.with(|cache| {
           cache.borrow_mut().clear();
           for user_role_permission in config.user_role_permissions {
             cache.borrow_mut().insert(user_role_permission.principal_id.clone(), (user_role_permission.is_controller, user_role_permission.role_codes.iter().cloned().collect(), user_role_permission.permission_codes.iter().cloned().collect()));
           }
         });
-      
+
         DICT.with(|cache| {
           cache.borrow_mut().clear();
           for dict in config.dicts {
             cache.borrow_mut().insert(dict.code.clone(), dict);
           }
         });
-      
+
         ic_cdk::api::debug_print(format!("System configs updated successfully"));
       }
-      
-      
+
       #[ic_cdk::query]
       pub fn get_user_role_permissions() -> Vec<UserRolePermissionVo> {
         USER_ROLE_PERMISSIONS.with(|cache| {
@@ -81,13 +80,13 @@ pub fn system_configs(_: TokenStream) -> TokenStream {
           }).collect()
         })
       }
-      
+
       pub fn get_dict_with_dict_code(dict_code: &DictCode) -> Option<DictVo> {
         DICT.with(|cache| {
           cache.borrow().get(dict_code).cloned()
         })
       }
-      
+
       /// Check if the caller has the given permission
       pub fn has_permission(permission_code: &str) -> bool {
         let caller = msg_caller().to_text();
@@ -98,15 +97,13 @@ pub fn system_configs(_: TokenStream) -> TokenStream {
           }
         })
       }
-      
+
       pub fn get_exteral_canister_id(canister: ExteralCanisterLabels) -> Principal {
         let dict = match get_dict_with_dict_code(&DictCode::from("system_config")) {
           Some(dict) => dict,
           None => ic_cdk::trap("Failed to get system config dict!")
         };
-      
         let canister_item = dict.items.iter().find(|item| item.label == canister.to_string());
-      
         match canister_item {
           Some(item) => Principal::from_text(&item.value).unwrap_or_else(|_| ic_cdk::trap(&format!("Failed to get canister id: canister label = {} and value = {} is not a valid principal!", canister.to_string(), item.value)),),
           None => ic_cdk::trap(&format!("Failed to get canister id: canister label = {} not found!", canister.to_string()))
@@ -118,9 +115,7 @@ pub fn system_configs(_: TokenStream) -> TokenStream {
           Some(dict) => dict,
           None => ic_cdk::trap("Failed to get system switches dict!")
         };
-      
         let canister_item = dict.items.iter().find(|item| item.label == switch.to_string());
-      
         match canister_item {
           Some(item) => item.value == "1",
           None => false
@@ -130,7 +125,6 @@ pub fn system_configs(_: TokenStream) -> TokenStream {
       pub fn system_switch_is_close(switch: SystemSwitches) -> bool {
         !system_switch_is_open(switch)
       }
-      
       pub async fn caller_is_controller() -> bool {
         is_controller(&msg_caller())
       }
@@ -138,7 +132,6 @@ pub fn system_configs(_: TokenStream) -> TokenStream {
   }
   .into()
 }
-
 
 #[proc_macro_attribute]
 pub fn has_permission(attr: TokenStream, item: TokenStream) -> TokenStream {

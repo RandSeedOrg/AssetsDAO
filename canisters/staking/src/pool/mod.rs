@@ -1,20 +1,25 @@
 use std::{cell::RefCell, str::FromStr};
 
 use crud_utils::add_staking_pool_to_stable_memory;
-use ic_stable_structures::{memory_manager::MemoryId, Cell, StableBTreeMap};
+use ic_stable_structures::{Cell, StableBTreeMap, memory_manager::MemoryId};
 use stable_structures::{StakingPool, StakingPoolStatus};
 use system_configs_macro::{has_permission, has_permission_option};
 use transport_structures::{StakingPoolAddDto, StakingPoolUpdateDto, StakingPoolVo};
-use types::{stable_structures::Memory, staking::StakingPoolId, EntityId};
+use types::{EntityId, stable_structures::Memory, staking::StakingPoolId};
 
-use crate::{event_log::staking_pool_events::{save_change_staking_pool_status_event_log, save_change_staking_pool_visible_event_log, save_update_staking_pool_event_log}, memory_ids::{STAKING_POOL, STAKING_POOL_SEQ}, MEMORY_MANAGER};
+use crate::{
+  MEMORY_MANAGER,
+  event_log::staking_pool_events::{
+    save_change_staking_pool_status_event_log, save_change_staking_pool_visible_event_log, save_update_staking_pool_event_log,
+  },
+  memory_ids::{STAKING_POOL, STAKING_POOL_SEQ},
+};
 
-pub mod stable_structures;
-pub mod transport_structures;
-pub mod crud_utils;
 pub mod client_api;
 pub mod client_transport_structures;
-
+pub mod crud_utils;
+pub mod stable_structures;
+pub mod transport_structures;
 
 thread_local! {
   /// The stake pool increases automaticallyIDGenerator
@@ -28,7 +33,6 @@ thread_local! {
   );
 }
 
-
 /// Added a stake pool
 #[ic_cdk::update]
 #[has_permission_option("staking::pool::add")]
@@ -39,16 +43,13 @@ fn add_staking_pool(pool: StakingPoolAddDto) -> Option<String> {
   add_staking_pool_to_stable_memory(&staking_pool)
 }
 
-
 /// Query all stake pools
 #[ic_cdk::query]
 #[has_permission("staking::pool::query")]
 fn get_all_staking_pools() -> Vec<StakingPoolVo> {
   STAKING_POOL_MAP.with(|map| {
     let map = map.borrow();
-    map.iter().map(|(_, pool)| {
-      StakingPoolVo::from_staking_pool(&pool)
-    }).collect()
+    map.iter().map(|(_, pool)| StakingPoolVo::from_staking_pool(&pool)).collect()
   })
 }
 
@@ -72,7 +73,7 @@ fn set_staking_pool_client_visible(id: StakingPoolId, visible: bool) -> Option<S
     }
 
     map.insert(pool.get_id(), pool.clone());
-    
+
     // Save update stake pool event log to stable memory
     save_change_staking_pool_visible_event_log(id, visible);
 
@@ -105,7 +106,7 @@ fn set_staking_pool_status(id: StakingPoolId, status: String) -> Option<String> 
 
         save_change_staking_pool_status_event_log(pool.get_id(), pool.get_status());
         None
-      },
+      }
       Err(_) => Some("Invalid status".to_string()), // Invalid status string
     }
   })
@@ -123,7 +124,7 @@ fn update_staking_pool(dto: StakingPoolUpdateDto) -> Option<String> {
     }
 
     let mut staking_pool = existing_pool.unwrap();
-    
+
     // Update the pool with new values from the DTO
     let result = staking_pool.update(&dto.add_dto);
 

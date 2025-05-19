@@ -1,7 +1,6 @@
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub struct PageRequest<T: CandidType> {
   pub page: u32,
@@ -9,12 +8,11 @@ pub struct PageRequest<T: CandidType> {
   pub params: T,
 }
 
-impl <T: CandidType> PageRequest<T> {
+impl<T: CandidType> PageRequest<T> {
   pub fn new(page: u32, page_size: u32, params: T) -> Self {
     Self { page, page_size, params }
-  }    
+  }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub struct PageResponse<T: CandidType> {
@@ -24,9 +22,14 @@ pub struct PageResponse<T: CandidType> {
   pub records: Vec<T>,
 }
 
-impl <T: CandidType> PageResponse<T> {
+impl<T: CandidType> PageResponse<T> {
   pub fn new(page: u32, page_size: u32, total: u32, records: Vec<T>) -> Self {
-    Self { page, page_size, total, records }
+    Self {
+      page,
+      page_size,
+      total,
+      records,
+    }
   }
 
   /// Record start position

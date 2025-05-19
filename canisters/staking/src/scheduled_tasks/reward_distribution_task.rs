@@ -16,7 +16,7 @@ pub async fn distribute_staking_rewards() {
     return;
   }
 
-  let _guard = scopeguard::guard((),|_| {
+  let _guard = scopeguard::guard((), |_| {
     ic_cdk::println!("Reward distribution task state recovery.");
     REWARD_DISTRIBUTION_TASK_RUNNING.with(|v| *v.borrow_mut() = false);
   });
@@ -35,7 +35,7 @@ pub async fn distribute_staking_rewards() {
       Ok(_) => (),
       Err(e) => {
         ic_cdk::println!("Reward distribute error: {}", e);
-      },
+      }
     };
   }
 

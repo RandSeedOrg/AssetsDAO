@@ -1,11 +1,14 @@
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
-use types::{pagination::{PageRequest, PageResponse}, staking::{StakingAccountId, StakingPoolId}, UserId, E8S};
+use types::{
+  E8S, UserId,
+  pagination::{PageRequest, PageResponse},
+  staking::{StakingAccountId, StakingPoolId},
+};
 
 use crate::pool::transport_structures::RewardConfigVo;
 
 use super::stable_structures::StakingAccount;
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub struct StakingAccountQueryParams {
@@ -17,7 +20,6 @@ pub struct StakingAccountQueryParams {
   pub onchain_address: String,
   pub status: String,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub struct StakingAccountVo {
@@ -71,7 +73,6 @@ pub struct StakingAccountVo {
 
 pub type StakingAccountPageRequest = PageRequest<StakingAccountQueryParams>;
 pub type StakingAccountPageResponse = PageResponse<StakingAccountVo>;
-
 
 impl StakingAccountVo {
   /// Convert staked account to staked account information visible to the client

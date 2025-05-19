@@ -1,15 +1,24 @@
 use std::{borrow::Cow, str::FromStr};
 
 use candid::{CandidType, Decode, Encode};
-use ic_stable_structures::{storable::Bound, Storable};
+use ic_stable_structures::{Storable, storable::Bound};
 use serde::{Deserialize, Serialize};
-use types::{product::e8s_to_value, stable_structures::{new_entity_id, MetaData}, Crypto, EntityId, TimestampNanos, E8S};
 use strum_macros::{Display, EnumString};
+use types::{
+  Crypto, E8S, EntityId, TimestampNanos,
+  product::e8s_to_value,
+  stable_structures::{MetaData, new_entity_id},
+};
 
-use crate::{account::{badge_utils::{add_staker_badge, remove_staker_badge}, stable_structures::StakingAccount}, on_chain::address::generate_staking_pool_chain_address};
+use crate::{
+  account::{
+    badge_utils::{add_staker_badge, remove_staker_badge},
+    stable_structures::StakingAccount,
+  },
+  on_chain::address::generate_staking_pool_chain_address,
+};
 
-use super::{transport_structures::StakingPoolAddDto, STAKING_POOL_ID, STAKING_POOL_MAP};
-
+use super::{STAKING_POOL_ID, STAKING_POOL_MAP, transport_structures::StakingPoolAddDto};
 
 /// Staking pool data structure，Used to store financing amount、The amount of staked、Staking poolstate等信息
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
@@ -45,7 +54,7 @@ pub struct StakingPool {
   /// End time of the stake pool
   pub end_time: Option<TimestampNanos>,
   /// Meta information for staked accounts
-  pub meta: Option<MetaData>
+  pub meta: Option<MetaData>,
 }
 
 impl StakingPool {
@@ -54,7 +63,7 @@ impl StakingPool {
     let id = STAKING_POOL_ID.with(|id_seq| new_entity_id(id_seq));
 
     // stake currency，Used by defaultICP
-    let crypto  = Crypto::from_str(&dto.crypto).unwrap_or(Crypto::ICP);
+    let crypto = Crypto::from_str(&dto.crypto).unwrap_or(Crypto::ICP);
 
     // Staking pool reward currency，Used by defaultBONUS
     let reward_crypto = RewardCrypto::from_str(&dto.reward_config.reward_crypto).unwrap_or(RewardCrypto::BONUS);
@@ -73,10 +82,10 @@ impl StakingPool {
       crypto: Some(crypto),
       status: Some(StakingPoolStatus::Created),
       client_visible: Some(false),
-      limit_config: Some(LimitConfig { 
+      limit_config: Some(LimitConfig {
         min_stake_amount_per_user: Some(dto.limit_config.min_stake_amount_per_user),
         max_stake_amount_per_user: Some(dto.limit_config.max_stake_amount_per_user),
-        step_amount: Some(dto.limit_config.step_amount), 
+        step_amount: Some(dto.limit_config.step_amount),
       }),
       term_config: Some(TermConfig {
         min_term: Some(dto.term_config.min_term),
@@ -95,23 +104,26 @@ impl StakingPool {
     }
   }
 
-  
   pub fn update(&mut self, dto: &StakingPoolAddDto) -> Option<String> {
     let status = self.get_status();
     if status != StakingPoolStatus::Created && status != StakingPoolStatus::Cancelled && status != StakingPoolStatus::Open {
       return Some("Only Created or Cancelled status pools can be updated".to_string());
     }
 
-    if  self.get_pool_size() > dto.pool_size && self.get_staked_amount() + self.get_locked_size() > dto.pool_size {
-      return Some(format!("Staking pool size is not enough, min can set size: {}, and new size: {}", e8s_to_value(self.get_staked_amount() + self.get_locked_size()).to_string() , e8s_to_value(dto.pool_size).to_string()));
+    if self.get_pool_size() > dto.pool_size && self.get_staked_amount() + self.get_locked_size() > dto.pool_size {
+      return Some(format!(
+        "Staking pool size is not enough, min can set size: {}, and new size: {}",
+        e8s_to_value(self.get_staked_amount() + self.get_locked_size()).to_string(),
+        e8s_to_value(dto.pool_size).to_string()
+      ));
     }
 
     self.meta = Some(self.get_meta().update());
     self.pool_size = Some(dto.pool_size);
-    self.limit_config = Some(LimitConfig { 
+    self.limit_config = Some(LimitConfig {
       min_stake_amount_per_user: Some(dto.limit_config.min_stake_amount_per_user),
       max_stake_amount_per_user: Some(dto.limit_config.max_stake_amount_per_user),
-      step_amount: Some(dto.limit_config.step_amount), 
+      step_amount: Some(dto.limit_config.step_amount),
     });
     self.term_config = Some(TermConfig {
       min_term: Some(dto.term_config.min_term),
@@ -133,7 +145,6 @@ impl StakingPool {
     self.meta = Some(self.get_meta().update());
     None
   }
-  
 
   /// Verify whether the stake pool can currently accept stakes of the corresponding amount
   pub fn validate_and_lock_size(&mut self, staking_amount: E8S) -> Result<Self, String> {
@@ -149,24 +160,31 @@ impl StakingPool {
 
       let status = pool.get_status();
       let client_visible = pool.get_client_visible();
-    
+
       // The staking pool is not visible on the client，或不处于开放state
       if status != StakingPoolStatus::Open || !client_visible {
-        return Err(format!("Staking pool is not open, current status: {:?}, and client visible is {}", status, client_visible));
+        return Err(format!(
+          "Staking pool is not open, current status: {:?}, and client visible is {}",
+          status, client_visible
+        ));
       }
 
       let remain_size = pool.get_pool_size() - pool.get_staked_amount() - pool.get_locked_size();
-  
+
       // Try to Lock the staking pool amount
       if remain_size < staking_amount {
-        return Err(format!("Staking pool size is not enough, current remain size: {}, and staking amount: {}", e8s_to_value(remain_size).to_string(), e8s_to_value(staking_amount).to_string()));
+        return Err(format!(
+          "Staking pool size is not enough, current remain size: {}, and staking amount: {}",
+          e8s_to_value(remain_size).to_string(),
+          e8s_to_value(staking_amount).to_string()
+        ));
       }
 
       // Lock the stake pool amount
       pool.locked_size = Some(pool.get_locked_size() + staking_amount);
       // Update the stake pool information
       map.insert(pool.get_id(), pool.clone());
-     
+
       Ok(pool.clone())
     })
   }
@@ -186,14 +204,18 @@ impl StakingPool {
       let new_locked_size = pool.get_locked_size() as i64 - staking_amount as i64;
 
       if new_locked_size < 0 {
-        return Err(format!("Staking pool locked size is not enough, current locked size: {}, and staking amount: {}", pool.get_locked_size(), staking_amount));
+        return Err(format!(
+          "Staking pool locked size is not enough, current locked size: {}, and staking amount: {}",
+          pool.get_locked_size(),
+          staking_amount
+        ));
       }
 
       // Release locked stake pool amount
       pool.locked_size = Some(new_locked_size as u64);
       // Update the stake pool information
       map.insert(pool.get_id(), pool.clone());
-     
+
       Ok(pool.clone())
     })
   }
@@ -250,7 +272,6 @@ impl StakingPool {
 
       // Update the staked amount of the stake pool
       pool.staked_amount = Some(pool.get_staked_amount() - account.get_staked_amount());
-
 
       if user_already_in_stake_accounts.len() == 1 {
         // If the user has only one staked account in the stake pool，则Update the number of stakes in the stake pool
@@ -328,9 +349,9 @@ impl StakingPool {
           ic_cdk::println!("Attempt to open pool from {:?} to {:?} is not allowed.", old_status, status);
           return Some("Only Created or Closed pools can be opened".to_string());
         }
-        
+
         self.open_time = Some(ic_cdk::api::time());
-      },
+      }
       StakingPoolStatus::Closed => {
         if old_status != StakingPoolStatus::Open {
           ic_cdk::println!("Attempt to close pool from {:?} to {:?} is not allowed.", old_status, status);
@@ -338,15 +359,15 @@ impl StakingPool {
         }
 
         self.close_time = Some(ic_cdk::api::time());
-      },
+      }
       StakingPoolStatus::Finished => {
         if old_status != StakingPoolStatus::Closed {
           ic_cdk::println!("Attempt to finish pool from {:?} to {:?} is not allowed.", old_status, status);
           return Some("Only Closed pools can be finished".to_string());
         }
-        // 
+        //
         self.end_time = Some(ic_cdk::api::time());
-      },
+      }
       StakingPoolStatus::Cancelled => {
         if old_status != StakingPoolStatus::Created {
           ic_cdk::println!("Attempt to cancel pool from {:?} to {:?} is not allowed.", old_status, status);
@@ -355,7 +376,7 @@ impl StakingPool {
 
         // Set the end time to the current time
         self.end_time = Some(ic_cdk::api::time());
-      },
+      }
       StakingPoolStatus::Created => {
         if old_status != StakingPoolStatus::Cancelled {
           ic_cdk::println!("Attempt to set pool status back to Created from {:?} is not allowed.", old_status);
@@ -452,7 +473,6 @@ impl RewardConfig {
   pub fn get_reward_crypto(&self) -> RewardCrypto {
     self.reward_crypto.clone().unwrap_or(RewardCrypto::BONUS)
   }
-    
 }
 
 /// Staking pool term configuration
@@ -485,12 +505,12 @@ impl TermConfig {
     if self.get_min_term() > term {
       return Err(format!("Minimum staking term is {} days", self.get_min_term()));
     }
-    
+
     // Verify the stake period
     if self.get_max_term() < term {
       return Err(format!("Maximum staking term is {} days", self.get_max_term()));
     }
-    
+
     Ok(())
   }
 }
@@ -523,7 +543,7 @@ impl LimitConfig {
     if self.get_min_stake_amount_per_user() > amount {
       return Err(format!("Minimum staking amount is {} E8S", self.get_min_stake_amount_per_user()));
     }
-    
+
     // Verify the maximum amount of stake
     if self.get_max_stake_amount_per_user() < amount {
       return Err(format!("Maximum staking amount is {} E8S", self.get_max_stake_amount_per_user()));
@@ -531,16 +551,25 @@ impl LimitConfig {
 
     // Verify the stake amount step
     if (amount - self.get_min_stake_amount_per_user()) % self.get_step_amount() != 0 {
-      return Err(format!("The amount exceeding the minimum staking amount must be a multiple of {}.", self.get_step_amount()));
+      return Err(format!(
+        "The amount exceeding the minimum staking amount must be a multiple of {}.",
+        self.get_step_amount()
+      ));
     }
-    
-    let already_staked_amount = current_user_in_stake_in_this_pool_accounts.iter().map(|account| account.get_staked_amount()).sum::<E8S>();
+
+    let already_staked_amount = current_user_in_stake_in_this_pool_accounts
+      .iter()
+      .map(|account| account.get_staked_amount())
+      .sum::<E8S>();
 
     // Verify whether the sum of the amount that the user has staked in the Staking pool and the current staked amount exceeds the maximum staked amount
     if already_staked_amount + amount > self.get_max_stake_amount_per_user() {
-      return Err(format!("The total staking amount exceeds the maximum staking amount of {} E8S", self.get_max_stake_amount_per_user()));
+      return Err(format!(
+        "The total staking amount exceeds the maximum staking amount of {} E8S",
+        self.get_max_stake_amount_per_user()
+      ));
     }
-    
+
     Ok(())
   }
 }

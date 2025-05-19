@@ -6,6 +6,13 @@
     "CHANGELOG.md": "CHANGELOG*",
     "package.json": "package-lock.json,LICENSE,.gitattributes,.gitignore,README*,.npmrc,.browserslistrc,postcss*,.dockerignore,deploy-*.sh,generate-*.sh,canister_ids.json",
   },
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "always",
+    }
+  },
   "cSpell.words": [
     "cicd",
     "Nanos",
@@ -13,6 +20,7 @@
     "scopeguard",
     "Subaccount",
     "unstake",
+    "unstakes",
     "unstaking"
   ]
 }

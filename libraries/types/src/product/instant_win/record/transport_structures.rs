@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::{EntityId, TicketNo, UserId};
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub struct InstantWinPlayRecordVo {
   pub id: EntityId,

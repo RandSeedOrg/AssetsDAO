@@ -1,11 +1,13 @@
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
-use types::{pagination::{PageRequest, PageResponse}, TimestampNanos, UserId};
+use types::{
+  TimestampNanos, UserId,
+  pagination::{PageRequest, PageResponse},
+};
 
 use crate::EntityId;
 
 use super::stable_structures::StakingSubscription;
-
 
 /// Stake Subscription
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]

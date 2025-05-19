@@ -1,9 +1,12 @@
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
-use types::{pagination::{PageRequest, PageResponse}, staking::{StakingAccountId, StakingPoolId, StakingRewardId}, TimestampNanos, E8S};
+use types::{
+  E8S, TimestampNanos,
+  pagination::{PageRequest, PageResponse},
+  staking::{StakingAccountId, StakingPoolId, StakingRewardId},
+};
 
 use super::stable_structures::StakingReward;
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub struct StakingRewardVo {
@@ -29,14 +32,12 @@ pub struct StakingRewardQueryParams {
   pub end_time: TimestampNanos,
 }
 
-
 pub type StakingRewardPageRequest = PageRequest<StakingRewardQueryParams>;
 pub type StakingRewardPageResponse = PageResponse<StakingRewardVo>;
 
-
 impl StakingRewardVo {
   pub fn from_staking_reward(reward: &StakingReward) -> Self {
-    let  meta = reward.get_meta();
+    let meta = reward.get_meta();
     Self {
       id: reward.id.unwrap_or_default(),
       pool_id: reward.pool_id.unwrap_or_default(),
@@ -50,5 +51,4 @@ impl StakingRewardVo {
       updated_at: meta.get_updated_at(),
     }
   }
-    
 }

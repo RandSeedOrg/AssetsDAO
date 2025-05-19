@@ -1,14 +1,14 @@
+use ic_cdk::api::{msg_caller, time};
 use std::borrow::Cow;
 use std::cell::RefCell;
-use ic_cdk::api::{time, msg_caller};
 
+use candid::CandidType;
 use candid::{Decode, Encode};
-use ic_stable_structures::memory_manager::VirtualMemory;
-use ic_stable_structures::storable::Bound;
 use ic_stable_structures::Cell;
 use ic_stable_structures::DefaultMemoryImpl;
-use serde::{Serialize, Deserialize};
-use candid::CandidType;
+use ic_stable_structures::memory_manager::VirtualMemory;
+use ic_stable_structures::storable::Bound;
+use serde::{Deserialize, Serialize};
 
 use crate::EntityId;
 use crate::Timestamp;
@@ -25,11 +25,11 @@ pub struct MetaData {
 
 impl Storable for MetaData {
   fn to_bytes(&self) -> Cow<[u8]> {
-      Cow::Owned(Encode!(self).unwrap())
+    Cow::Owned(Encode!(self).unwrap())
   }
 
   fn from_bytes(bytes: Cow<[u8]>) -> Self {
-      Decode!(bytes.as_ref(), Self).unwrap()
+    Decode!(bytes.as_ref(), Self).unwrap()
   }
 
   const BOUND: Bound = Bound::Unbounded;
@@ -55,7 +55,7 @@ impl MetaData {
       updated_by: None,
     }
   }
-  
+
   pub fn update(&self) -> Self {
     MetaData {
       created_at: self.created_at.clone(),
@@ -63,7 +63,7 @@ impl MetaData {
       created_by: self.created_by.clone(),
       updated_by: Some(msg_caller().to_string()),
     }
-  } 
+  }
 
   pub fn get_created_at(&self) -> Timestamp {
     self.created_at.unwrap_or_default()
@@ -76,7 +76,7 @@ impl MetaData {
   pub fn get_created_by(&self) -> UserId {
     self.created_by.clone().unwrap_or_default()
   }
-  
+
   pub fn get_updated_by(&self) -> UserId {
     self.updated_by.clone().unwrap_or_default()
   }

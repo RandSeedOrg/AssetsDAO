@@ -1,9 +1,9 @@
 use std::borrow::Cow;
 
 use candid::{CandidType, Decode, Encode};
-use ic_stable_structures::{storable::Bound, Storable};
+use ic_stable_structures::{Storable, storable::Bound};
 use serde::{Deserialize, Serialize};
-use types::{date::YearMonthDay, staking::StakingAccountId, UserId};
+use types::{UserId, date::YearMonthDay, staking::StakingAccountId};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, CandidType, Default)]
 pub struct StakingAccountUserRewardDateIndexKey(StakingAccountId, UserId, YearMonthDay);

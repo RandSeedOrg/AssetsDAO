@@ -7,8 +7,7 @@
 
 #[ic_cdk::update]
 fn greet() -> String {
-    "Hello, AssetsDAO!".to_string()
+  "Hello, AssetsDAO!".to_string()
 }
-
 
 ic_cdk::export_candid!();

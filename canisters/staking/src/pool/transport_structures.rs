@@ -1,6 +1,6 @@
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
-use types::{EntityId, TimestampNanos, E8S};
+use types::{E8S, EntityId, TimestampNanos};
 
 use super::stable_structures::{LimitConfig, RewardConfig, StakingPool, TermConfig};
 
@@ -26,7 +26,6 @@ pub struct StakingPoolAddDto {
   /// Staking pool limit configuration
   pub limit_config: LimitConfigVo,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub struct TermConfigVo {
@@ -147,27 +146,15 @@ impl StakingPoolVo {
       client_visible: pool.get_client_visible(),
       open_time: {
         let time = pool.get_open_time();
-        if time == 0 {
-          -1
-        } else {
-          time as i64 / 1_000_000
-        }
+        if time == 0 { -1 } else { time as i64 / 1_000_000 }
       },
       close_time: {
         let time = pool.get_clone_time();
-        if time == 0 {
-          -1
-        } else {
-          time as i64 / 1_000_000
-        }
+        if time == 0 { -1 } else { time as i64 / 1_000_000 }
       },
       end_time: {
         let time = pool.get_end_time();
-        if time == 0 {
-          -1
-        } else {
-          time as i64 / 1_000_000
-        }
+        if time == 0 { -1 } else { time as i64 / 1_000_000 }
       },
       creator: meta.get_created_by(),
       create_time: meta.get_created_at(),

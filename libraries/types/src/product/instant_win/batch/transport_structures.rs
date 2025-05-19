@@ -1,10 +1,12 @@
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 
-use crate::{product::instant_win::configs::transport_structures::{InstantWinConfigVo, UpdateInstantWinConfigDto}, EntityId, Nanoseconds, Timestamp, UserId};
+use crate::{
+  EntityId, Nanoseconds, Timestamp, UserId,
+  product::instant_win::configs::transport_structures::{InstantWinConfigVo, UpdateInstantWinConfigDto},
+};
 
 use super::quick_quid_transport_structures::QuickQuidBatchExtraVo;
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub struct InstantWinBatchVo {

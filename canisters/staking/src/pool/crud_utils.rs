@@ -1,6 +1,6 @@
 use crate::event_log::staking_pool_events::save_create_staking_pool_event_log;
 
-use super::{stable_structures::StakingPool, STAKING_POOL_MAP};
+use super::{STAKING_POOL_MAP, stable_structures::StakingPool};
 
 /// Added a stake pool
 pub fn add_staking_pool_to_stable_memory(pool: &StakingPool) -> Option<String> {
@@ -24,10 +24,9 @@ pub fn add_staking_pool_to_stable_memory(pool: &StakingPool) -> Option<String> {
 pub fn query_client_visible_staking_pools() -> Vec<StakingPool> {
   STAKING_POOL_MAP.with(|map| {
     let map = map.borrow();
-    map.iter()
-      .filter(|(_, pool)| {
-        pool.is_client_visible()
-      })
+    map
+      .iter()
+      .filter(|(_, pool)| pool.is_client_visible())
       .map(|(_, pool)| pool.clone())
       .collect()
   })
