@@ -1,13 +1,13 @@
 use std::{borrow::Cow, str::FromStr};
 
 use candid::{CandidType, Decode, Encode};
-use ic_stable_structures::{Storable, storable::Bound};
+use ic_stable_structures::{storable::Bound, Storable};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
 use types::{
-  Crypto, E8S, EntityId, TimestampNanos,
   product::e8s_to_value,
-  stable_structures::{MetaData, new_entity_id},
+  stable_structures::{new_entity_id, MetaData},
+  Crypto, EntityId, TimestampNanos, E8S,
 };
 
 use crate::{
@@ -16,9 +16,10 @@ use crate::{
     stable_structures::StakingAccount,
   },
   on_chain::address::generate_staking_pool_chain_address,
+  pool_transaction_record::utils::{record_stake_transaction, record_unstake_transaction},
 };
 
-use super::{STAKING_POOL_ID, STAKING_POOL_MAP, transport_structures::StakingPoolAddDto};
+use super::{transport_structures::StakingPoolAddDto, STAKING_POOL_ID, STAKING_POOL_MAP};
 
 /// Staking pool data structure，Used to store financing amount、The amount of staked、Staking poolstate等信息
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
@@ -245,6 +246,9 @@ impl StakingPool {
 
       map.insert(pool.get_id(), pool.clone());
 
+      // Record the staking transaction of the staking pool
+      record_stake_transaction(&account)?;
+
       let account_owner = account.get_owner();
       let account_id = account.get_id();
 
@@ -288,6 +292,9 @@ impl StakingPool {
       pool.update_meta();
 
       map.insert(pool.get_id(), pool.clone());
+
+      // Record the unstaking and penalty transaction of the staking pool
+      record_unstake_transaction(account)?;
 
       Ok(pool)
     })

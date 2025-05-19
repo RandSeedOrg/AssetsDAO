@@ -1,5 +1,5 @@
 {
-  "name": "assetsdao",
+  "name": "assets-dao",
   "version": "1.0.0",
   "description": "",
   "repository": {
@@ -15,10 +15,10 @@
     "ic-env:dev": "node -r dotenv/config ./deploy-tools/ic-env-switch.mjs dotenv_config_path=./.env.dev",
     "ic-env:test": "node -r dotenv/config ./deploy-tools/ic-env-switch.mjs dotenv_config_path=./.env.test",
     "ic-env:prod": "node -r dotenv/config ./deploy-tools/ic-env-switch.mjs dotenv_config_path=./.env.prod",
-    "postic-env:local": "chmod +x ./*.sh",
-    "postic-env:dev": "chmod +x ./*.sh",
-    "postic-env:test": "chmod +x ./*.sh",
-    "postic-env:ic": "chmod +x ./*.sh"
+    "postic-env:local": "chmod +x ./*.sh && ./generate-rpc.sh",
+    "postic-env:dev": "chmod +x ./*.sh && ./generate-rpc.sh",
+    "postic-env:test": "chmod +x ./*.sh && ./generate-rpc.sh",
+    "postic-env:ic": "chmod +x ./*.sh && ./generate-rpc.sh"
   },
   "devDependencies": {
     "dotenv": "^16.5.0"

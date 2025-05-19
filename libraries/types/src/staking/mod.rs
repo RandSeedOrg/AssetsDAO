@@ -6,3 +6,4 @@ pub type StakingPoolId = EntityId;
 pub type StakingEventLogId = EntityId;
 pub type StakingRewardId = EntityId;
 pub type SubscriptionId = EntityId;
+pub type PoolTransactionRecordId = EntityId;

@@ -1,0 +1,22 @@
+[package]
+name = "common_utils"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+ic-cdk = { workspace = true }
+candid = { workspace = true }
+ic_principal = { workspace = true }
+ic-stable-structures = { workspace = true }
+
+serde = { workspace = true }
+
+strum = { workspace = true }
+strum_macros = { workspace = true }
+
+bigdecimal = { workspace = true }
+num-bigint = { workspace = true }
+
+chrono = { workspace = true }

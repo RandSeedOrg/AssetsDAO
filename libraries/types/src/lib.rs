@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
 
 pub mod assets_management;
+pub mod btree_set_entity_index;
 pub mod date;
 pub mod entities;
 pub mod on_chain;
