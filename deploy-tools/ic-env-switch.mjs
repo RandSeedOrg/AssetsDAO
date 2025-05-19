@@ -23,7 +23,7 @@ const rpcScript = `
 
 # generate staking candid file
 cargo build --target wasm32-unknown-unknown --release --package staking --locked
-candid-extractor target/wasm32-unknown-unknown/release/staking.wasm > backend/staking/staking.did
+candid-extractor target/wasm32-unknown-unknown/release/staking.wasm > canisters/staking/staking.did
 dfx generate staking
 
 # generate assets_management candid file
