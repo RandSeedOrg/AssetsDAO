@@ -1,14 +1,19 @@
 use std::borrow::Cow;
 
 use candid::{CandidType, Decode, Encode};
-use ic_stable_structures::{Storable, storable::Bound};
+use ic_stable_structures::{storable::Bound, Storable};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
 use types::{
-  E8S, UserId,
   assets_management::{JackpotId, ProposalId},
-  stable_structures::MetaData,
+  stable_structures::{new_entity_id, MetaData},
   staking::StakingPoolId,
+  UserId, E8S,
+};
+
+use super::{
+  transport_structures::{AddProposalDto, UpdateProposalDto},
+  PROPOSAL_ID,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
@@ -20,6 +25,69 @@ pub struct Proposal {
   pub proposal_initiator: Option<UserId>,
   pub proposal_instruction: Option<ProposalInstruction>,
   pub meta: Option<MetaData>,
+}
+
+impl Proposal {
+  pub fn from_add_dto(dto: &AddProposalDto) -> Self {
+    let new_proposal_id = PROPOSAL_ID.with(|proposal_id| new_entity_id(proposal_id));
+    let meta = MetaData::init_create_scene();
+    Self {
+      id: Some(new_proposal_id),
+      title: Some(dto.title.clone()),
+      description: Some(dto.description.clone()),
+      status: Some(ProposalStatus::Created),
+      proposal_initiator: Some(ic_cdk::api::canister_self().to_text()),
+      proposal_instruction: Some(ProposalInstruction {
+        instruction_type: Some(dto.instruction_type.clone()),
+        instruction_status: Some(ProposalInstructionStatus::NotReady),
+        meta: Some(meta.clone()),
+      }),
+      meta: Some(meta.clone()),
+    }
+  }
+
+  pub fn update_with_dto(&mut self, dto: &UpdateProposalDto) {
+    self.title = Some(dto.title.clone());
+    self.description = Some(dto.description.clone());
+    self.proposal_instruction = Some(ProposalInstruction {
+      instruction_type: Some(dto.instruction_type.clone()),
+      instruction_status: Some(ProposalInstructionStatus::NotReady),
+      meta: Some(self.get_proposal_instruction().get_meta().update()),
+    });
+    self.meta = Some(self.get_meta().update());
+  }
+
+  pub fn get_id(&self) -> ProposalId {
+    self.id.unwrap_or_default()
+  }
+
+  pub fn get_title(&self) -> String {
+    self.title.clone().unwrap_or_default()
+  }
+
+  pub fn get_description(&self) -> String {
+    self.description.clone().unwrap_or_default()
+  }
+
+  pub fn get_status(&self) -> ProposalStatus {
+    self.status.clone().unwrap_or(ProposalStatus::Created)
+  }
+
+  pub fn get_proposal_initiator(&self) -> UserId {
+    self.proposal_initiator.clone().unwrap_or_default()
+  }
+
+  pub fn get_proposal_instruction(&self) -> ProposalInstruction {
+    self.proposal_instruction.clone().unwrap_or(ProposalInstruction {
+      instruction_type: None,
+      instruction_status: None,
+      meta: None,
+    })
+  }
+
+  pub fn get_meta(&self) -> MetaData {
+    self.meta.clone().unwrap_or_default()
+  }
 }
 
 #[derive(EnumString, Display, Debug, Clone, Serialize, Deserialize, CandidType)]
@@ -50,11 +118,17 @@ pub struct ProposalInstruction {
   pub meta: Option<MetaData>,
 }
 
+impl ProposalInstruction {
+  pub fn get_meta(&self) -> MetaData {
+    self.meta.clone().unwrap_or_default()
+  }
+}
+
 /// The Proposal Instruction Type, which describes the purpose of the instruction and the metadata required for the instruction to execute
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub enum ProposalInstructionType {
   /// Stake the specified amount in the specified staking pool into the NNS neuron
-  NNSStake { staking_pool_id: StakingPoolId, amount: E8S },
+  NNSStake { pool_id: StakingPoolId, amount: E8S, duration: u16 },
   /// Transfer the specified amount of funds in the staking pool to the jackpot account
   JackpotInvestment { jackpot_id: JackpotId, amount: E8S },
 }
