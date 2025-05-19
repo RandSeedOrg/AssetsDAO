@@ -1,7 +1,7 @@
 use ic_ledger_types::BlockIndex;
 use types::{btree_set_entity_index::add_indexed_id, staking::StakingPoolId};
 
-use crate::{account::stable_structures::StakingAccount, pool};
+use crate::account::stable_structures::StakingAccount;
 
 use super::{
   stable_structures::{PoolTransactionRecord, PoolTransactionRecords, RecordType, RecordTypeIndexKey, RecordTypeKey},
