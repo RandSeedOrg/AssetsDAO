@@ -1,21 +1,26 @@
 import { writeFileSync } from 'fs';
 import { resolve } from 'path';
 import dotenv from 'dotenv';
+import { execSync } from 'child_process';
 dotenv.config();
+
+const generate_canister_id = (canister_name, fallback) => process.env.DFX_NETWORK === 'local' ? execSync(`dfx canister id ${canister_name}`).toString('utf-8').replace('\n', '') : fallback;
 
 const canisterConfig = {
   admin: {
     [process.env.DFX_NETWORK]: process.env.CANISTER_ID_ADMIN
   },
   staking: {
-    [process.env.DFX_NETWORK]: process.env.CANISTER_ID_STAKING
+    [process.env.DFX_NETWORK]: generate_canister_id('staking', process.env.CANISTER_ID_STAKING)
   },
   assets_management: {
-    [process.env.DFX_NETWORK]: process.env.CANISTER_ID_ASSETS_MANAGEMENT
+    [process.env.DFX_NETWORK]: generate_canister_id('assets_management', process.env.CANISTER_ID_ASSETS_MANAGEMENT)
   },
 };
 
 writeFileSync(resolve('./canister_ids.json'), JSON.stringify(canisterConfig, null, 2));
+
+const get_canister_id = (canister_name) => canisterConfig[canister_name][process.env.DFX_NETWORK];
 
 // 0. generate rpc scripts
 const rpcScript = `
@@ -43,7 +48,8 @@ dfx deploy ${canister_name}${canister_args ? ` --argument '${canister_args}' ` :
 
 const generate_deploy_script_with_subscribe = (canister_name, canister_args) => {
   return `${generate_deploy_script(canister_name, canister_args)}
-dfx canister call ${canister_name} setup_subscribe '(principal "${process.env.CANISTER_ID_ADMIN}")' --network ${process.env.DFX_NETWORK}
+dfx canister update-settings --add-controller ${get_canister_id('admin')} ${canister_name} --network ${process.env.DFX_NETWORK}
+dfx canister call ${canister_name} setup_subscribe '(principal "${get_canister_id('admin')}")' --network ${process.env.DFX_NETWORK}
   `;
 }
 
