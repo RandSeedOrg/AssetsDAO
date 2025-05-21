@@ -30,8 +30,10 @@ dist/
 
 /target
 *.tsbuildinfo
+candid
 
 # deploy tools
 *.sh
+!start-local.sh
 canisters/**/*.did
 canister_ids.json
