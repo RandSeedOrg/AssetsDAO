@@ -23,8 +23,12 @@ thread_local! {
 
 use candid::Principal;
 use dao::proposal::transport_structures::AddProposalDto;
+use dao::proposal::transport_structures::ProposalListParams;
+use dao::proposal::transport_structures::ProposalVo;
 use dao::proposal::transport_structures::UpdateProposalDto;
 use types::assets_management::ProposalId;
+use types::pagination::PageRequest;
+use types::pagination::PageResponse;
 use types::sys::config::SystemConfig;
 use types::sys::config::UserRolePermissionVo;
 
