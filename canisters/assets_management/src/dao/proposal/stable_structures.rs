@@ -47,10 +47,11 @@ impl Proposal {
   }
 
   pub fn update_with_dto(&mut self, dto: &UpdateProposalDto) {
-    self.title = Some(dto.title.clone());
-    self.description = Some(dto.description.clone());
+    let add_dto = &dto.add_dto;
+    self.title = Some(add_dto.title.clone());
+    self.description = Some(add_dto.description.clone());
     self.proposal_instruction = Some(ProposalInstruction {
-      instruction_type: Some(dto.instruction_type.clone()),
+      instruction_type: Some(add_dto.instruction_type.clone()),
       instruction_status: Some(ProposalInstructionStatus::NotReady),
       meta: Some(self.get_proposal_instruction().get_meta().update()),
     });
@@ -100,7 +101,7 @@ pub enum ProposalStatus {
   OpenVoting,
   /// The vote is passed, and the proposal instructions can be executed at this time
   #[strum(serialize = "2")]
-  Approved,
+  Passed,
   /// Vote rejected. The proposal has not passed multi-signature and will not be executed. Only the status will be recorded.
   #[strum(serialize = "3")]
   Rejected,
@@ -119,6 +120,14 @@ pub struct ProposalInstruction {
 }
 
 impl ProposalInstruction {
+  pub fn get_instruction_type(&self) -> ProposalInstructionType {
+    self.instruction_type.clone().unwrap_or(ProposalInstructionType::None)
+  }
+
+  pub fn get_instruction_status(&self) -> ProposalInstructionStatus {
+    self.instruction_status.clone().unwrap_or(ProposalInstructionStatus::NotReady)
+  }
+
   pub fn get_meta(&self) -> MetaData {
     self.meta.clone().unwrap_or_default()
   }
@@ -127,24 +136,40 @@ impl ProposalInstruction {
 /// The Proposal Instruction Type, which describes the purpose of the instruction and the metadata required for the instruction to execute
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub enum ProposalInstructionType {
+  /// None, the proposal does not contain any instructions
+  None,
   /// Stake the specified amount in the specified staking pool into the NNS neuron
-  NNSStake { pool_id: StakingPoolId, amount: E8S, duration: u16 },
+  NNSStake {
+    pool_id: StakingPoolId,
+    amount: E8S,
+    duration: u16,
+    neuron_id: Option<u64>,
+  },
   /// Transfer the specified amount of funds in the staking pool to the jackpot account
-  JackpotInvestment { jackpot_id: JackpotId, amount: E8S },
+  JackpotInvestment {
+    pool_id: StakingPoolId,
+    jackpot_id: JackpotId,
+    amount: E8S,
+  },
 }
 
 /// The status of the proposal instruction
-#[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
+#[derive(EnumString, Display, Debug, Clone, Serialize, Deserialize, CandidType)]
 pub enum ProposalInstructionStatus {
   /// The proposal has not been voted on yet, so the instructions are not ready
+  #[strum(serialize = "0")]
   NotReady,
   /// The proposal has been voted through and is awaiting execution
+  #[strum(serialize = "1")]
   Pending,
   /// The instruction is being executed
+  #[strum(serialize = "2")]
   InProgress,
   /// The instruction was executed successfully
+  #[strum(serialize = "3")]
   Succeed,
   /// The instruction was executed but failed
+  #[strum(serialize = "4")]
   Failed,
 }
 

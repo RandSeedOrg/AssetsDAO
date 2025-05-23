@@ -18,7 +18,7 @@ thread_local! {
   pub static PROPOSAL_ID: RefCell<Cell<EntityId, Memory>> = RefCell::new(Cell::init(MEMORY_MANAGER.with(|m| m.borrow().get(PROPOSAL_SEQ_MEMORY_ID)), 0_u64).unwrap());
 
   /// Proposal stable storage
-  pub static STAKING_ACCOUNT_MAP: RefCell<StableBTreeMap<ProposalId, Proposal, Memory>> = RefCell::new(
+  pub static PROPOSAL_MAP: RefCell<StableBTreeMap<ProposalId, Proposal, Memory>> = RefCell::new(
     StableBTreeMap::init(
       MEMORY_MANAGER.with(|m| m.borrow().get(PROPOSAL_MAP_MEMORY_ID)),
     )
