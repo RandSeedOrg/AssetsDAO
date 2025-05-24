@@ -1,6 +1,6 @@
 use crate::event_log::staking_pool_events::save_create_staking_pool_event_log;
 
-use super::{STAKING_POOL_MAP, stable_structures::StakingPool};
+use super::{stable_structures::StakingPool, STAKING_POOL_MAP};
 
 /// Added a stake pool
 pub fn add_staking_pool_to_stable_memory(pool: &StakingPool) -> Option<String> {

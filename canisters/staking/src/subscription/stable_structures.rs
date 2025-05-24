@@ -2,12 +2,12 @@ use std::{borrow::Cow, str::FromStr};
 
 use candid::{CandidType, Decode, Encode, Principal};
 use ic_cdk::api::msg_caller;
-use ic_stable_structures::{Storable, storable::Bound};
+use ic_stable_structures::{storable::Bound, Storable};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
-use types::{EntityId, TimestampNanos, UserId, stable_structures::new_entity_id};
+use types::{stable_structures::new_entity_id, EntityId, TimestampNanos, UserId};
 
-use super::{STAKING_SUBSCRIPTION_ID, STAKING_SUBSCRIPTION_MAP, transport_structures::StakingSubscribeAddDto};
+use super::{transport_structures::StakingSubscribeAddDto, STAKING_SUBSCRIPTION_ID, STAKING_SUBSCRIPTION_MAP};
 
 /// Subscribe to scenarios
 #[derive(EnumString, Display, Debug, Clone, Serialize, Deserialize, CandidType, PartialEq)]

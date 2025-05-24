@@ -275,7 +275,7 @@ async fn early_unstake(account_id: StakingAccountId) -> Result<StakingAccountVo,
   save_unstake_transfer_start_event(account.get_id(), account.get_pool_id());
 
   let unstake_tx_id = if released_amount > 0 {
-    // Unstake金额大于0，On-chain transfer is required
+    // Unstake zero amount，On-chain transfer is required
     // Execute on-chain transfer of unstake
     match transfer_from_staking_pool_to_staking_account(account.get_pool_id(), account.get_id(), released_amount).await {
       Ok(tx_id) => {
@@ -454,7 +454,7 @@ async fn dissolve(account_id: StakingAccountId) -> Result<StakingAccountVo, Stri
   let pay_center = common_canisters::pay_center::Service(pay_center_canister_id);
 
   let (dissolve_tx_id, pay_center_tx_id) = if account.get_released_amount() == 0 {
-    // Unstake金额为0，No on-chain transfer is required
+    // Unstake the zero amount，No on-chain transfer is required
     ic_cdk::println!("The released amount is 0, no need to transfer on-chain");
     (0, 0)
   } else {

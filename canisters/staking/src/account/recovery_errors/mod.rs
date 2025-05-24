@@ -1,7 +1,7 @@
 use recover_early_unstake::{recover_unstake_penalty_onchain_error, recover_unstake_penalty_pay_center_error};
 use types::staking::StakingAccountId;
 
-use super::{STAKING_ACCOUNT_MAP, stable_structures::StakingAccountRecoverableError};
+use super::{stable_structures::StakingAccountRecoverableError, STAKING_ACCOUNT_MAP};
 
 pub mod recover_dissolve;
 pub mod recover_early_unstake;

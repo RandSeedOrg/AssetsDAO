@@ -2,15 +2,15 @@ use std::{borrow::Cow, time::Duration};
 
 use candid::{CandidType, Decode, Encode};
 use ic_ledger_types::BlockIndex;
-use ic_stable_structures::{Storable, storable::Bound};
+use ic_stable_structures::{storable::Bound, Storable};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
 use types::{
-  E8S, EntityId, TimestampNanos, UserId,
   date::YearMonthDay,
   entities::{add_indexed_id, remove_indexed_id},
-  stable_structures::{MetaData, new_entity_id},
+  stable_structures::{new_entity_id, MetaData},
   staking::StakingAccountId,
+  EntityId, TimestampNanos, UserId, E8S,
 };
 
 use crate::{
@@ -20,14 +20,14 @@ use crate::{
 };
 
 use super::{
-  STAKING_ACCOUNT_ID, STAKING_ACCOUNT_MAP, STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX_MAP, STAKING_UNSTAKE_ON_DAY_ACCOUNT_INDEX_MAP,
-  client_transport_structures::StakeDto,
+  client_transport_structures::StakeDto, STAKING_ACCOUNT_ID, STAKING_ACCOUNT_MAP, STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX_MAP,
+  STAKING_UNSTAKE_ON_DAY_ACCOUNT_INDEX_MAP,
 };
 
 /// Status of the staked account
 #[derive(EnumString, Display, Debug, Clone, Serialize, Deserialize, CandidType, PartialEq)]
 pub enum StakingAccountStatus {
-  /// New status，at this timestake account已经创建，But there is no stake
+  /// New status，at this time stake account already created，But there is no stake
   #[strum(serialize = "0")]
   Created,
   /// stake（stake time， Expiry time）
@@ -50,7 +50,7 @@ pub enum StakingAccountRecoverableError {
   DissolvePayCenterFailed(BlockIndex),
   /// When unstake error，On-chain transactions in the stake pool failed
   EarlyUnstakePenaltyOnChainFailed(BlockIndex, TimestampNanos, E8S),
-  /// 提前When unstaking，Payment center bookkeeping failed
+  /// Early unstaking，Payment center bookkeeping failed
   EarlyUnstakePenaltyPayCenterFailed(BlockIndex, BlockIndex, TimestampNanos, E8S),
 }
 
@@ -293,7 +293,11 @@ impl StakingAccount {
       let diff_time = stake_deadline - now;
       let one_day = 24 * 60 * 60 * 1_000_000_000;
       let result = diff_time / one_day;
-      if diff_time % one_day > 0 { result + 1 } else { result }
+      if diff_time % one_day > 0 {
+        result + 1
+      } else {
+        result
+      }
     } else {
       0
     }

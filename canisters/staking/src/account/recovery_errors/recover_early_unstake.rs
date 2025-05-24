@@ -4,11 +4,11 @@ use types::{entities::remove_indexed_id, sys::ExteralCanisterLabels};
 
 use crate::{
   account::{
-    STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX_MAP,
     crud_utils::query_user_in_stake_accounts,
     guard_keys::get_recovery_unstake_penalty_guard_key,
     stable_structures::{StakingAccount, StakingAccountRecoverableError, StakingAccountStatus},
     transport_structures::StakingAccountVo,
+    STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX_MAP,
   },
   event_log::{
     stake_and_unstake_events::save_unstake_event,

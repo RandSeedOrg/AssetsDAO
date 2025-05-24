@@ -2,12 +2,12 @@ use std::borrow::Cow;
 
 use candid::{CandidType, Decode, Encode, Principal};
 use ic_ledger_types::BlockIndex;
-use ic_stable_structures::{Storable, storable::Bound};
+use ic_stable_structures::{storable::Bound, Storable};
 use serde::{Deserialize, Serialize};
 use types::{
-  EntityId, TimestampNanos,
   stable_structures::new_entity_id,
   staking::{StakingAccountId, StakingPoolId},
+  EntityId, TimestampNanos,
 };
 
 use crate::{

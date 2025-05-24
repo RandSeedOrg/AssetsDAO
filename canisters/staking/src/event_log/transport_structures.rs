@@ -2,8 +2,8 @@ use candid::CandidType;
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
 use types::{
-  TimestampNanos,
   pagination::{PageRequest, PageResponse},
+  TimestampNanos,
 };
 
 use super::stable_structures::{EventLog, EventType};

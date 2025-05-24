@@ -2,8 +2,8 @@ use system_configs_macro::has_permission;
 use types::entities::get_indexed_ids;
 
 use super::{
-  STAKING_ACCOUNT_REWARD_INDEX_MAP, STAKING_POOL_REWARD_INDEX_MAP, STAKING_REWARD_MAP, STAKING_USER_REWARD_INDEX_MAP,
   transport_structures::{StakingRewardPageRequest, StakingRewardPageResponse, StakingRewardQueryParams, StakingRewardVo},
+  STAKING_ACCOUNT_REWARD_INDEX_MAP, STAKING_POOL_REWARD_INDEX_MAP, STAKING_REWARD_MAP, STAKING_USER_REWARD_INDEX_MAP,
 };
 
 #[ic_cdk::query]

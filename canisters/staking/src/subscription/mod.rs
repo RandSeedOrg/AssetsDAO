@@ -1,16 +1,16 @@
 use std::{cell::RefCell, str::FromStr};
 
 use ic_cdk::api::msg_caller;
-use ic_stable_structures::{Cell, StableBTreeMap, memory_manager::MemoryId};
+use ic_stable_structures::{memory_manager::MemoryId, Cell, StableBTreeMap};
 use stable_structures::{StakingSubscription, SubscribeScene};
 use system_configs_macro::has_permission;
 use transport_structures::{StakingSubscribeAddDto, StakingSubscriptionVo, SubscriptionQueryParams, SubscriptionRequest, SubscriptionResponse};
-use types::{EntityId, stable_structures::Memory, staking::SubscriptionId};
+use types::{stable_structures::Memory, staking::SubscriptionId, EntityId};
 
 use crate::{
-  MEMORY_MANAGER,
   event_log::transport_structures::SortType,
   memory_ids::{STAKING_SUBSCRIPTION, STAKING_SUBSCRIPTION_SEQ},
+  MEMORY_MANAGER,
 };
 
 pub mod stable_structures;
@@ -90,7 +90,11 @@ fn query_subscriptions(request: SubscriptionRequest) -> SubscriptionResponse {
       })
       .filter(|subscribe| {
         // Filter subscription email
-        if email.len() > 0 { subscribe.get_email().contains(&email) } else { true }
+        if email.len() > 0 {
+          subscribe.get_email().contains(&email)
+        } else {
+          true
+        }
       })
       .filter(|subscribe| {
         // Filter subscribers id
