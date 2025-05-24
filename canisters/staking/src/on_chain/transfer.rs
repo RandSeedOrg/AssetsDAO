@@ -1,8 +1,8 @@
-use ic_ledger_types::{AccountIdentifier, BlockIndex, MAINNET_LEDGER_CANISTER_ID, Memo, Subaccount, Tokens, TransferArgs, TransferError};
+use ic_ledger_types::{AccountIdentifier, BlockIndex, Memo, Subaccount, Tokens, TransferArgs, TransferError, MAINNET_LEDGER_CANISTER_ID};
 use types::{
-  E8S,
   staking::{StakingAccountId, StakingPoolId},
   sys::ExteralCanisterLabels,
+  E8S,
 };
 
 use crate::system_configs::get_exteral_canister_id;
@@ -27,7 +27,6 @@ pub const TRANSFER_SCENE_UNSTAKE: u64 = 2;
 pub const TRANSFER_SCENE_PAY_CENTER: u64 = 3;
 pub const TRANSFER_SCENE_UNSTAKE_PENALTY: u64 = 4;
 
-/// 从Pledge池转账到Pledge账户（解Pledge/redemption）
 pub async fn transfer_from_staking_pool_to_staking_account(
   pool_id: StakingPoolId,
   account_id: StakingAccountId,

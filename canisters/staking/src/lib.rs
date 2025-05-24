@@ -4,7 +4,7 @@ parallel_guard_macro::parallel_guard!();
 
 use std::cell::RefCell;
 
-use ic_stable_structures::{DefaultMemoryImpl, memory_manager::MemoryManager};
+use ic_stable_structures::{memory_manager::MemoryManager, DefaultMemoryImpl};
 use types::EntityId;
 
 pub mod account;

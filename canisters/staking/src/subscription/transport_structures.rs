@@ -1,8 +1,8 @@
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 use types::{
-  TimestampNanos, UserId,
   pagination::{PageRequest, PageResponse},
+  TimestampNanos, UserId,
 };
 
 use crate::EntityId;

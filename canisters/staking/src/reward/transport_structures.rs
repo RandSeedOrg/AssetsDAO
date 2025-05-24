@@ -1,9 +1,9 @@
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 use types::{
-  E8S, TimestampNanos,
   pagination::{PageRequest, PageResponse},
   staking::{StakingAccountId, StakingPoolId, StakingRewardId},
+  TimestampNanos, E8S,
 };
 
 use super::stable_structures::StakingReward;

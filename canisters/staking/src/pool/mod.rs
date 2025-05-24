@@ -1,18 +1,18 @@
 use std::{cell::RefCell, str::FromStr};
 
 use crud_utils::add_staking_pool_to_stable_memory;
-use ic_stable_structures::{Cell, StableBTreeMap, memory_manager::MemoryId};
+use ic_stable_structures::{memory_manager::MemoryId, Cell, StableBTreeMap};
 use stable_structures::{StakingPool, StakingPoolStatus};
 use system_configs_macro::{has_permission, has_permission_option};
 use transport_structures::{StakingPoolAddDto, StakingPoolUpdateDto, StakingPoolVo};
-use types::{EntityId, stable_structures::Memory, staking::StakingPoolId};
+use types::{stable_structures::Memory, staking::StakingPoolId, EntityId};
 
 use crate::{
-  MEMORY_MANAGER,
   event_log::staking_pool_events::{
     save_change_staking_pool_status_event_log, save_change_staking_pool_visible_event_log, save_update_staking_pool_event_log,
   },
   memory_ids::{STAKING_POOL, STAKING_POOL_SEQ},
+  MEMORY_MANAGER,
 };
 
 pub mod client_api;

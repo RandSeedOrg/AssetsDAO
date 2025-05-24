@@ -1,21 +1,21 @@
 use std::cell::RefCell;
 
-use ic_stable_structures::{Cell, StableBTreeMap, memory_manager::MemoryId};
+use ic_stable_structures::{memory_manager::MemoryId, Cell, StableBTreeMap};
 use stable_key::StakingAccountUserRewardDateIndexKey;
 use stable_structures::StakingReward;
 use types::{
-  EntityId, UserId,
   entities::EntityIndex,
   stable_structures::Memory,
   staking::{StakingAccountId, StakingPoolId, StakingRewardId},
+  EntityId, UserId,
 };
 
 use crate::{
-  MEMORY_MANAGER,
   memory_ids::{
     STAKING_ACCOUNT_REWARD_INDEX, STAKING_POOL_REWARD_INDEX, STAKING_REWARD, STAKING_REWARD_SEQ, STAKING_USER_ACCOUNT_REWARD_DATE_INDEX,
     STAKING_USER_REWARD_INDEX,
   },
+  MEMORY_MANAGER,
 };
 
 pub mod crud;

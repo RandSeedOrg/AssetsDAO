@@ -5,10 +5,10 @@ use types::{entities::remove_indexed_id, sys::ExteralCanisterLabels};
 
 use crate::{
   account::{
-    STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX_MAP,
     guard_keys::get_recovery_dissolve_guard_key,
     stable_structures::{StakingAccount, StakingAccountStatus},
     transport_structures::StakingAccountVo,
+    STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX_MAP,
   },
   event_log::{
     stake_and_unstake_events::save_dissolve_event,

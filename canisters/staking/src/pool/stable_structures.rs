@@ -1,13 +1,13 @@
 use std::{borrow::Cow, str::FromStr};
 
 use candid::{CandidType, Decode, Encode};
-use ic_stable_structures::{Storable, storable::Bound};
+use ic_stable_structures::{storable::Bound, Storable};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
 use types::{
-  Crypto, E8S, EntityId, TimestampNanos,
   product::e8s_to_value,
-  stable_structures::{MetaData, new_entity_id},
+  stable_structures::{new_entity_id, MetaData},
+  Crypto, EntityId, TimestampNanos, E8S,
 };
 
 use crate::{
@@ -18,9 +18,9 @@ use crate::{
   on_chain::address::generate_staking_pool_chain_address,
 };
 
-use super::{STAKING_POOL_ID, STAKING_POOL_MAP, transport_structures::StakingPoolAddDto};
+use super::{transport_structures::StakingPoolAddDto, STAKING_POOL_ID, STAKING_POOL_MAP};
 
-/// Staking pool data structure，Used to store financing amount、The amount of staked、Staking poolstate等信息
+/// Staking pool data structure，Used to store financing amount、The amount of staked、Staking pool state
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub struct StakingPool {
   /// Staking poolID
@@ -541,19 +541,19 @@ impl LimitConfig {
   pub fn validate_stake_amount(&self, amount: E8S, current_user_in_stake_in_this_pool_accounts: &Vec<StakingAccount>) -> Result<(), String> {
     // Check the minimum stake amount
     if self.get_min_stake_amount_per_user() > amount {
-      return Err(format!("Minimum staking amount is {} E8S", self.get_min_stake_amount_per_user()));
+      return Err(format!("Minimum staking amount is {} ICP", e8s_to_value(self.get_min_stake_amount_per_user())));
     }
 
     // Verify the maximum amount of stake
     if self.get_max_stake_amount_per_user() < amount {
-      return Err(format!("Maximum staking amount is {} E8S", self.get_max_stake_amount_per_user()));
+      return Err(format!("Maximum staking amount is {} ICP", e8s_to_value(self.get_max_stake_amount_per_user())));
     }
 
     // Verify the stake amount step
     if (amount - self.get_min_stake_amount_per_user()) % self.get_step_amount() != 0 {
       return Err(format!(
-        "The amount exceeding the minimum staking amount must be a multiple of {}.",
-        self.get_step_amount()
+        "The amount exceeding the minimum staking amount must be a multiple of {} ICP.",
+        e8s_to_value(self.get_step_amount())
       ));
     }
 
@@ -565,8 +565,8 @@ impl LimitConfig {
     // Verify whether the sum of the amount that the user has staked in the Staking pool and the current staked amount exceeds the maximum staked amount
     if already_staked_amount + amount > self.get_max_stake_amount_per_user() {
       return Err(format!(
-        "The total staking amount exceeds the maximum staking amount of {} E8S",
-        self.get_max_stake_amount_per_user()
+        "The total staking amount exceeds the maximum staking amount of {} ICP",
+        e8s_to_value(self.get_max_stake_amount_per_user())
       ));
     }
 

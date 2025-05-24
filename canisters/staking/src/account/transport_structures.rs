@@ -1,9 +1,9 @@
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
 use types::{
-  E8S, UserId,
   pagination::{PageRequest, PageResponse},
   staking::{StakingAccountId, StakingPoolId},
+  UserId, E8S,
 };
 
 use crate::pool::transport_structures::RewardConfigVo;

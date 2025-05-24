@@ -1,6 +1,6 @@
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
-use types::{E8S, staking::StakingPoolId};
+use types::{staking::StakingPoolId, E8S};
 
 use crate::account::{crud_utils::query_current_user_staking_accounts, stable_structures::StakingAccountStatus};
 
@@ -9,7 +9,7 @@ use super::{
   transport_structures::{LimitConfigVo, RewardConfigVo, TermConfigVo},
 };
 
-/// CThe return data structure of the end user querying the stake pool information
+/// The return data structure of the client user querying the stake pool information
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub struct ClientStakingPoolVo {
   /// Staking poolID

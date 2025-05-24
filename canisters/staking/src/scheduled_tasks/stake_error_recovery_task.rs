@@ -1,5 +1,5 @@
 use crate::{
-  account::{STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX_MAP, recovery_errors::recover_staking_account_error},
+  account::{recovery_errors::recover_staking_account_error, STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX_MAP},
   parallel_guard::EntryGuard,
 };
 

@@ -2,23 +2,23 @@ use std::borrow::Cow;
 
 use bigdecimal::{BigDecimal, ToPrimitive};
 use candid::{CandidType, Decode, Encode};
-use ic_stable_structures::{Storable, storable::Bound};
+use ic_stable_structures::{storable::Bound, Storable};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
 use types::{
-  E8S, EntityId, TimestampNanos, UserId,
   date::YearMonthDay,
   entities::add_indexed_id,
   product::e8s_to_value,
-  stable_structures::{MetaData, new_entity_id},
+  stable_structures::{new_entity_id, MetaData},
   staking::{StakingAccountId, StakingRewardId},
+  EntityId, TimestampNanos, UserId, E8S,
 };
 
 use crate::{account::stable_structures::StakingAccount, pool::stable_structures::RewardCrypto};
 
 use super::{STAKING_ACCOUNT_REWARD_INDEX_MAP, STAKING_POOL_REWARD_INDEX_MAP, STAKING_REWARD_ID, STAKING_REWARD_MAP, STAKING_USER_REWARD_INDEX_MAP};
 
-/// Staking reward data structure，用于存储stake Reward的相关信息
+/// Staking reward data structure，use for storage the Stake Reward information
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub struct StakingReward {
   /// stake RewardID

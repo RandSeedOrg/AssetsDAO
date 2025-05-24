@@ -1,13 +1,13 @@
 use std::{cell::RefCell, str::FromStr};
 
-use ic_stable_structures::{Cell, StableBTreeMap, memory_manager::MemoryId};
+use ic_stable_structures::{memory_manager::MemoryId, Cell, StableBTreeMap};
 use stable_structures::EventLog;
 use transport_structures::{EventLogQueryParams, EventTypeCode, StakingEventLogPageRequest, StakingEventLogPageResponse};
-use types::{EntityId, stable_structures::Memory};
+use types::{stable_structures::Memory, EntityId};
 
 use crate::{
-  MEMORY_MANAGER,
   memory_ids::{STAKING_EVENT_LOG, STAKING_EVENT_LOG_SEQ},
+  MEMORY_MANAGER,
 };
 
 pub mod stable_structures;

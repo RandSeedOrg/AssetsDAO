@@ -10,9 +10,9 @@ use crate::{
 };
 
 use super::{
-  STAKING_REWARD_MAP, STAKING_USER_ACCOUNT_REWARD_DATE_INDEX_MAP,
   stable_key::StakingAccountUserRewardDateIndexKey,
   stable_structures::{StakingReward, StakingRewardStatus},
+  STAKING_REWARD_MAP, STAKING_USER_ACCOUNT_REWARD_DATE_INDEX_MAP,
 };
 
 /// Update the reward distribution record of the current account on a certain day
