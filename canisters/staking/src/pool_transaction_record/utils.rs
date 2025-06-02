@@ -1,7 +1,7 @@
 use ic_ledger_types::BlockIndex;
 use types::{btree_set_entity_index::add_indexed_id, staking::StakingPoolId};
 
-use crate::account::stable_structures::StakingAccount;
+use crate::{account::stable_structures::StakingAccount, nns::stable_structures::NnsStakeExecuteRecord};
 
 use super::{
   stable_structures::{PoolTransactionRecord, PoolTransactionRecords, RecordType, RecordTypeIndexKey, RecordTypeKey},
@@ -71,6 +71,27 @@ pub fn record_unstake_transaction(account: &StakingAccount) -> Result<(), String
       account.get_release_onchain_tx_id(),
     )?;
   }
+
+  Ok(())
+}
+
+/// Record a transaction for the NNS neuron stake
+pub fn record_stake_to_neuron_transaction(execute_record: &NnsStakeExecuteRecord) -> Result<(), String> {
+  let nns_neuron_transaction = record_transaction(
+    execute_record.get_pool_id(),
+    &RecordType::NNSNeuronStake {
+      neuron_id: execute_record.get_neuron_id(),
+    },
+    -(execute_record.get_amount() as i64),
+    execute_record.get_transfer_block_index(),
+  )?;
+
+  record_transaction(
+    execute_record.get_pool_id(),
+    &RecordType::Fee(nns_neuron_transaction.get_id()),
+    -10_000,
+    execute_record.get_transfer_block_index(),
+  )?;
 
   Ok(())
 }

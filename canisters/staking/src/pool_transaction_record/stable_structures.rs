@@ -5,9 +5,10 @@ use ic_ledger_types::BlockIndex;
 use ic_stable_structures::{storable::Bound, Storable};
 use serde::{Deserialize, Serialize};
 use types::{
+  pagination::PageResponse,
   product::ProductId,
   staking::{PoolTransactionRecordId, StakingAccountId, StakingPoolId},
-  EntityId, TimestampNanos, E8S,
+  EntityId, E8S,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
@@ -74,6 +75,32 @@ impl PoolTransactionRecords {
 
     new_record
   }
+
+  pub fn get_page(&self, page: u32, page_size: u32) -> PageResponse<PoolTransactionRecord> {
+    let records = self.get_transaction_records();
+    let total_count = self.get_max_record_id() as u32;
+    let start = (page - 1) * page_size;
+
+    let paginated_records: Vec<PoolTransactionRecord> = records.values().rev().skip(start as usize).take(page_size as usize).cloned().collect();
+
+    PageResponse::new(page, page_size, total_count, paginated_records)
+  }
+
+  pub fn get_page_by_ids(&self, page: u32, page_size: u32, ids: Vec<PoolTransactionRecordId>) -> PageResponse<PoolTransactionRecord> {
+    let records = self.get_transaction_records();
+    let total_count = ids.len() as u32;
+    let start = (page - 1) * page_size;
+
+    let paginated_records: Vec<PoolTransactionRecord> = ids
+      .into_iter()
+      .rev()
+      .skip(start as usize)
+      .take(page_size as usize)
+      .filter_map(|id| records.get(&id).cloned())
+      .collect();
+
+    PageResponse::new(page, page_size, total_count, paginated_records)
+  }
 }
 
 /// Virtual transaction records of the pledge pool can be reconciled with the on-chain
@@ -102,7 +129,7 @@ impl PoolTransactionRecord {
       }),
       record_type: Some(record_type),
       block_index: Some(block_index),
-      created_at: None,
+      created_at: Some(ic_cdk::api::time()),
     }
   }
 
@@ -136,11 +163,7 @@ pub enum RecordType {
   /// Transaction records generated when users unstaking with penalty
   EarlyUnstakePenalty(StakingAccountId),
   /// Transaction records generated when staking to nns neuron
-  NNSNeuronStake {
-    neuron_id: EntityId,
-    start_time: TimestampNanos,
-    duration_days: u16,
-  },
+  NNSNeuronStake { neuron_id: EntityId },
   /// Transaction records generated when unstaking from nns neuron
   NNSNeuronUnstake { neuron_id: EntityId },
   /// Transaction records generated when transferring to jackpot
@@ -170,7 +193,7 @@ impl From<u8> for RecordTypeKey {
       5 => RecordTypeKey::NNSNeuronStake,
       6 => RecordTypeKey::NNSNeuronUnstake,
       7 => RecordTypeKey::Jackpot,
-      _ => panic!("Invalid RecordTypeKey index"),
+      _ => ic_cdk::trap(format!("Invalid RecordTypeKey index from u8 with value {}", index)),
     }
   }
 }
@@ -183,11 +206,7 @@ impl From<&RecordType> for RecordTypeKey {
       RecordType::Staking(_) => RecordTypeKey::Staking,
       RecordType::Unstaking(_) => RecordTypeKey::Unstaking,
       RecordType::EarlyUnstakePenalty(_) => RecordTypeKey::EarlyUnstakePenalty,
-      RecordType::NNSNeuronStake {
-        neuron_id: _,
-        start_time: _,
-        duration_days: _,
-      } => RecordTypeKey::NNSNeuronStake,
+      RecordType::NNSNeuronStake { neuron_id: _ } => RecordTypeKey::NNSNeuronStake,
       RecordType::NNSNeuronUnstake { neuron_id: _ } => RecordTypeKey::NNSNeuronUnstake,
       RecordType::Jackpot {
         canister_id: _,
