@@ -7,7 +7,6 @@ pub mod assets_management;
 pub mod btree_set_entity_index;
 pub mod date;
 pub mod entities;
-pub mod nns;
 pub mod on_chain;
 pub mod pagination;
 pub mod product;

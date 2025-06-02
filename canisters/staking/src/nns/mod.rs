@@ -1,15 +1,16 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, collections::BTreeMap};
 
 use ic_cdk::{query, update};
 use ic_stable_structures::{memory_manager::MemoryId, StableBTreeMap};
+use nns_governance_api::nns_governance_api::Neuron;
 use stable_structures::NnsStakeExecuteRecord;
 use transport_structures::NnsStakeExecuteRecordVo;
 use types::{assets_management::ProposalId, stable_structures::Memory, staking::StakingPoolId, E8S};
-use utils::nns_update::refresh_nns_neuron_by_pool;
+use utils::{nns_query::sync_nns_neuron, nns_update::refresh_nns_neuron_by_pool};
 
 use crate::{
   guard_keys::get_stake_to_nns_guard_key,
-  memory_ids::NNS_STAKING_EXECUTE_RECORD,
+  memory_ids::{NNS_STAKING_EXECUTE_RECORD, NNS_STAKING_POOL_NEURON_ID},
   on_chain::{address::generate_staking_pool_neuron_account, transfer::transfer_from_staking_pool_to_nns_neuron},
   parallel_guard::EntryGuard,
   pool::crud_utils::query_staking_pool_by_id,
@@ -26,6 +27,16 @@ thread_local! {
   pub static NNS_STAKING_EXECUTE_RECORD_MAP: RefCell<StableBTreeMap<ProposalId, NnsStakeExecuteRecord, Memory>> = RefCell::new(
     StableBTreeMap::init(
       MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(NNS_STAKING_EXECUTE_RECORD))),
+    )
+  );
+
+  pub static NNS_NEURON_MAP: RefCell<BTreeMap<StakingPoolId, Neuron>> = RefCell::new(
+    BTreeMap::new()
+  );
+
+  pub static NNS_STAKING_POOL_NEURON_ID_MAP: RefCell<StableBTreeMap<StakingPoolId, u64, Memory>> = RefCell::new(
+    StableBTreeMap::init(
+      MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(NNS_STAKING_POOL_NEURON_ID))),
     )
   );
 }
@@ -78,6 +89,19 @@ async fn stake_to_nns_neuron(proposal_id: ProposalId, pool_id: StakingPoolId, am
     Ok(neuron_id) => {
       execute_record.update_to_success(neuron_id);
       record_stake_to_neuron_transaction(&execute_record)?;
+
+      NNS_STAKING_POOL_NEURON_ID_MAP.with(|map| {
+        let mut map = map.borrow_mut();
+        map.insert(pool_id, neuron_id);
+      });
+
+      // Sync the NNS neuron to the local cache
+      ic_cdk::futures::spawn(async move {
+        sync_nns_neuron(pool_id).await.unwrap_or_else(|e| {
+          ic_cdk::println!("Failed to sync NNS neuron for pool {}: {}", pool_id, e);
+        });
+      });
+
       Ok(neuron_id)
     }
     Err(e) => {
@@ -95,4 +119,18 @@ pub fn get_nns_staking_execute_record(proposal_id: ProposalId) -> Option<NnsStak
     let record = map.borrow().get(&proposal_id)?;
     Some(NnsStakeExecuteRecordVo::from(record))
   })
+}
+
+#[query]
+pub fn get_nns_neuron_by_pool_id(pool_id: StakingPoolId) -> Option<Neuron> {
+  if let Some(neuron) = NNS_NEURON_MAP.with(|map| map.borrow().get(&pool_id).cloned()) {
+    Some(neuron)
+  } else {
+    None
+  }
+}
+
+#[update]
+pub async fn sync_nns_neuron_by_pool_id(pool_id: StakingPoolId) -> Result<(), String> {
+  sync_nns_neuron(pool_id).await
 }

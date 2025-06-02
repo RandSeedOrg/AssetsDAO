@@ -33,3 +33,4 @@ pub const STAKING_POOL_TRANSACTION_RECORD_TYPE_INDEX: u8 = 51;
 
 /// Memory of NNS staking record ID definition
 pub const NNS_STAKING_EXECUTE_RECORD: u8 = 60;
+pub const NNS_STAKING_POOL_NEURON_ID: u8 = 61;
