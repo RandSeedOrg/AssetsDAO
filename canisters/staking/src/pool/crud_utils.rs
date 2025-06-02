@@ -39,3 +39,11 @@ pub fn query_staking_pool_by_id(pool_id: u64) -> Result<StakingPool, String> {
     map.get(&pool_id).ok_or_else(|| format!("Staking pool with ID {} not found", pool_id))
   })
 }
+
+/// Get all staking pool IDs
+pub fn get_all_staking_pools() -> Vec<StakingPool> {
+  STAKING_POOL_MAP.with(|map| {
+    let map = map.borrow();
+    map.iter().map(|(_, pool)| pool).collect()
+  })
+}

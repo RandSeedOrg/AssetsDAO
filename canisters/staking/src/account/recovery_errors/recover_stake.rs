@@ -7,7 +7,6 @@ use types::{
 use crate::{
   account::{
     crud_utils::{query_user_in_stake_accounts, save_stake_account_to_stable_memory},
-    guard_keys::get_recovery_stake_guard_key,
     stable_structures::{StakingAccount, StakingAccountStatus},
     transport_structures::StakingAccountVo,
     STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX_MAP, STAKING_UNSTAKE_ON_DAY_ACCOUNT_INDEX_MAP,
@@ -16,6 +15,7 @@ use crate::{
     stake_and_unstake_events::save_stake_event,
     transfer_events::{save_stake_transfer_fail_event, save_stake_transfer_ok_event, save_stake_transfer_start_event},
   },
+  guard_keys::get_recovery_stake_guard_key,
   on_chain::transfer::transfer_from_staking_account_to_staking_pool,
   parallel_guard::EntryGuard,
   pool::crud_utils::query_staking_pool_by_id,

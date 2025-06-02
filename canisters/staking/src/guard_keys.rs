@@ -1,4 +1,4 @@
-use types::{staking::StakingAccountId, UserId};
+use types::{assets_management::ProposalId, staking::StakingAccountId, UserId};
 
 /// Obtain the key for stake entrance
 pub fn get_stake_guard_key(user_id: UserId) -> String {
@@ -33,4 +33,8 @@ pub fn get_distribute_reward_guard_key(account_id: StakingAccountId) -> String {
 /// Obtain the guard key for unsolicited account recovery entry
 pub fn get_recovery_unstake_penalty_guard_key(account_id: StakingAccountId) -> String {
   format!("recovery_unstake_penalty_guard_{}", account_id)
+}
+
+pub fn get_stake_to_nns_guard_key(proposal_id: ProposalId) -> String {
+  format!("stake_to_nns_guard_{}", proposal_id)
 }

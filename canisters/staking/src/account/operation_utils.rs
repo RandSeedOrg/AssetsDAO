@@ -5,6 +5,7 @@ use crate::{
     stake_and_unstake_events::save_unstake_event,
     transfer_events::{save_unstake_transfer_fail_event, save_unstake_transfer_ok_event, save_unstake_transfer_start_event},
   },
+  guard_keys::get_unstake_guard_key,
   on_chain::transfer::transfer_from_staking_pool_to_staking_account,
   parallel_guard::EntryGuard,
   pool::stable_structures::StakingPool,
@@ -12,7 +13,6 @@ use crate::{
 
 use super::{
   crud_utils::query_user_in_stake_accounts,
-  guard_keys::get_unstake_guard_key,
   stable_structures::{StakingAccount, StakingAccountStatus},
   transport_structures::StakingAccountVo,
 };

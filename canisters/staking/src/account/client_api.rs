@@ -22,6 +22,7 @@ use crate::{
       save_unstake_penalty_transfer_start_event, save_unstake_transfer_fail_event, save_unstake_transfer_ok_event, save_unstake_transfer_start_event,
     },
   },
+  guard_keys::{get_dissolve_guard_key, get_stake_guard_key, get_unstake_guard_key},
   on_chain::transfer::{
     transfer_from_staking_account_to_pay_center, transfer_from_staking_account_to_staking_pool, transfer_from_staking_pool_to_pay_center,
     transfer_from_staking_pool_to_staking_account,
@@ -34,7 +35,6 @@ use crate::{
 use super::{
   client_transport_structures::{EarlyUnstakePreCheckVo, StakeDto},
   crud_utils::{query_current_user_in_stake_accounts, query_current_user_staking_accounts, save_stake_account_to_stable_memory},
-  guard_keys::{get_dissolve_guard_key, get_stake_guard_key, get_unstake_guard_key},
   recovery_errors::{
     recover_dissolve::recover_dissolve_error,
     recover_early_unstake::{recover_unstake_penalty_onchain_error, recover_unstake_penalty_pay_center_error},
@@ -304,7 +304,7 @@ async fn early_unstake(account_id: StakingAccountId) -> Result<StakingAccountVo,
     // Transfer event log from stake pool to payment center-start
     save_unstake_penalty_transfer_start_event(account.get_id(), account.get_pool_id());
 
-    // 执行UnstakePenalty fees链上转账
+    // Execute unstake penalty fee on-chain transfer
     let penalty_onchain_tx_id = match transfer_from_staking_pool_to_pay_center(account.get_pool_id(), penalty_amount).await {
       Ok(tx_id) => {
         ic_cdk::println!("On-chain transfer success: {}", tx_id);

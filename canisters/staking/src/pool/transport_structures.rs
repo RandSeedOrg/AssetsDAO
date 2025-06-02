@@ -98,6 +98,12 @@ pub struct StakingPoolVo {
   pub pool_size: E8S,
   /// Staked amount of the staking pool
   pub staked_amount: E8S,
+  /// The amount of funds occupied by the NNS neuron
+  pub nns_neuron_occupies_funds: E8S,
+  /// The amount of funds occupied by the jackpot
+  pub jackpot_occupies_funds: E8S,
+  /// Available funds in the staking pool
+  pub available_funds: E8S,
   /// Number of users who have staked
   pub stake_user_count: u32,
   /// stake currency，refer to Crypto enumerate
@@ -172,6 +178,9 @@ impl StakingPoolVo {
       create_time: meta.get_created_at(),
       last_update_person: meta.get_updated_by(),
       last_update_time: meta.get_updated_at(),
+      nns_neuron_occupies_funds: pool.get_nns_neuron_occupies_funds(),
+      jackpot_occupies_funds: pool.get_jackpot_occupies_funds(),
+      available_funds: pool.get_available_funds().unwrap_or_default(),
     }
   }
 }

@@ -3,8 +3,9 @@ use common_canisters::pay_center::Result2;
 use types::{date::YearMonthDay, product::generate_staking_reward_payment_transaction_id, sys::ExteralCanisterLabels};
 
 use crate::{
-  account::{guard_keys::get_distribute_reward_guard_key, stable_structures::StakingAccount},
+  account::stable_structures::StakingAccount,
   event_log::stake_reward_events::{save_reward_distribute_event, save_reward_received_event},
+  guard_keys::get_distribute_reward_guard_key,
   parallel_guard::EntryGuard,
   system_configs::get_exteral_canister_id,
 };

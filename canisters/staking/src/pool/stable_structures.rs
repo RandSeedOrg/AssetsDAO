@@ -36,6 +36,10 @@ pub struct StakingPool {
   pub locked_size: Option<E8S>,
   /// Number of stakes in the stake pool
   pub staked_user_count: Option<u32>,
+  /// The amount of funds occupied by the NNS neuron
+  pub nns_neuron_occupies_funds: Option<E8S>,
+  /// The amount of funds occupied by the jackpot
+  pub jackpot_occupies_funds: Option<E8S>,
   /// Staking currency
   pub crypto: Option<Crypto>,
   /// Staking pool state
@@ -102,6 +106,8 @@ impl StakingPool {
       close_time: None,
       end_time: None,
       meta: Some(MetaData::init_create_scene()),
+      nns_neuron_occupies_funds: None,
+      jackpot_occupies_funds: None,
     }
   }
 
@@ -162,7 +168,7 @@ impl StakingPool {
       let status = pool.get_status();
       let client_visible = pool.get_client_visible();
 
-      // The staking pool is not visible on the client，或不处于开放state
+      // The staking pool is not visible on the client, or not in open state
       if status != StakingPoolStatus::Open || !client_visible {
         return Err(format!(
           "Staking pool is not open, current status: {:?}, and client visible is {}",
@@ -278,7 +284,7 @@ impl StakingPool {
       pool.staked_amount = Some(pool.get_staked_amount() - account.get_staked_amount());
 
       if user_already_in_stake_accounts.len() == 1 {
-        // If the user has only one staked account in the stake pool，则Update the number of stakes in the stake pool
+        // If the user has only one staked account in the stake pool, then update the number of stakes in the stake pool
         pool.staked_user_count = Some(pool.get_staked_user_count() - 1);
 
         let account_owner = account.get_owner();
@@ -292,9 +298,6 @@ impl StakingPool {
       pool.update_meta();
 
       map.insert(pool.get_id(), pool.clone());
-
-      // Record the unstaking and penalty transaction of the staking pool
-      record_unstake_transaction(account)?;
 
       Ok(pool)
     })
@@ -339,6 +342,51 @@ impl StakingPool {
 
   pub fn get_status(&self) -> StakingPoolStatus {
     self.status.clone().unwrap_or(StakingPoolStatus::Created)
+  }
+
+  pub fn get_nns_neuron_occupies_funds(&self) -> E8S {
+    self.nns_neuron_occupies_funds.unwrap_or_default()
+  }
+
+  fn set_nns_neuron_occupies_funds(&mut self, amount: E8S) {
+    self.nns_neuron_occupies_funds = Some(amount);
+  }
+
+  pub fn add_nns_neuron_occupies_funds(&self, amount: E8S) -> Result<(), String> {
+    STAKING_POOL_MAP.with(|map| {
+      let mut map = map.borrow_mut();
+
+      let pool = map.get(&self.get_id());
+
+      if pool.is_none() {
+        return Err("Staking pool not found".to_string());
+      }
+
+      let mut pool = pool.unwrap();
+
+      let new_nns_neuron_occupies_funds = pool.get_nns_neuron_occupies_funds().checked_add(amount);
+
+      if new_nns_neuron_occupies_funds.is_none() {
+        return Err("Overflow when adding NNS neuron occupies funds".to_string());
+      }
+
+      pool.set_nns_neuron_occupies_funds(new_nns_neuron_occupies_funds.unwrap());
+
+      map.insert(pool.get_id(), pool);
+
+      Ok(())
+    })
+  }
+
+  pub fn get_jackpot_occupies_funds(&self) -> E8S {
+    self.jackpot_occupies_funds.unwrap_or_default()
+  }
+
+  pub fn get_available_funds(&self) -> Option<u64> {
+    self
+      .get_staked_amount()
+      .checked_sub(self.get_nns_neuron_occupies_funds())?
+      .checked_sub(self.get_jackpot_occupies_funds())
   }
 
   pub fn set_status(&mut self, status: StakingPoolStatus) -> Option<String> {
