@@ -7,6 +7,7 @@ pub mod assets_management;
 pub mod btree_set_entity_index;
 pub mod date;
 pub mod entities;
+pub mod nns;
 pub mod on_chain;
 pub mod pagination;
 pub mod product;
@@ -15,6 +16,7 @@ pub mod staking;
 pub mod sys;
 
 pub type E8S = u64;
+pub const E8S_PER_ICP: E8S = 100_000_000;
 
 #[derive(CandidType, Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Tokens {
@@ -42,7 +44,7 @@ pub type Nanoseconds = u64;
 pub type TimestampMillis = Timestamp;
 pub type TimestampNanos = Timestamp;
 
-/// 排名因子，用于排行榜排序
+/// Ranking factor, used for leaderboard sorting
 pub type RankingFactor = u128;
 
 /// The currency types for block chain
