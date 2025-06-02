@@ -16,7 +16,7 @@ use crate::{
     stable_structures::StakingAccount,
   },
   on_chain::address::generate_staking_pool_chain_address,
-  pool_transaction_record::utils::{record_stake_transaction, record_unstake_transaction},
+  pool_transaction_record::utils::record_stake_transaction,
 };
 
 use super::{transport_structures::StakingPoolAddDto, STAKING_POOL_ID, STAKING_POOL_MAP};
