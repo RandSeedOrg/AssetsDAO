@@ -16,6 +16,7 @@ use types::{
 use crate::{
   on_chain::address::generate_staking_account_chain_address,
   pool::stable_structures::{RewardConfig, StakingPool},
+  pool_transaction_record::utils::record_unstake_transaction,
   reward::stable_structures::StakingReward,
 };
 
@@ -258,6 +259,9 @@ impl StakingAccount {
       // When unstake，Remove the staked account from the unstaked date index，Further improve the performance of timing tasks
       STAKING_UNSTAKE_ON_DAY_ACCOUNT_INDEX_MAP
         .with(|map| remove_indexed_id(map, &YearMonthDay::from(account.get_stake_deadline()), account.get_id()));
+
+      // Record the unstaking and penalty transaction of the staking pool
+      record_unstake_transaction(&account)?;
 
       Ok(account)
     })
