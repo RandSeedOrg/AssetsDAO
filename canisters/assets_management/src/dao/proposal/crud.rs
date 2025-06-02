@@ -86,6 +86,7 @@ fn list_proposal(request: PageRequest<ProposalListParams>) -> PageResponse<Propo
     page_size,
     records: proposals
       .iter()
+      .rev()
       .skip(start as usize)
       .take(page_size as usize)
       .map(|proposal| ProposalVo::from_proposal(proposal))

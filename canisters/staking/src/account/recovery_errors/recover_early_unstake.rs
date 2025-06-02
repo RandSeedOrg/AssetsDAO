@@ -5,7 +5,6 @@ use types::{entities::remove_indexed_id, sys::ExteralCanisterLabels};
 use crate::{
   account::{
     crud_utils::query_user_in_stake_accounts,
-    guard_keys::get_recovery_unstake_penalty_guard_key,
     stable_structures::{StakingAccount, StakingAccountRecoverableError, StakingAccountStatus},
     transport_structures::StakingAccountVo,
     STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX_MAP,
@@ -17,6 +16,7 @@ use crate::{
       save_unstake_penalty_transfer_fail_event, save_unstake_penalty_transfer_ok_event, save_unstake_penalty_transfer_start_event,
     },
   },
+  guard_keys::get_recovery_unstake_penalty_guard_key,
   on_chain::transfer::transfer_from_staking_pool_to_pay_center,
   parallel_guard::EntryGuard,
   pool::stable_structures::StakingPool,

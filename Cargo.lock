@@ -831,6 +831,7 @@ dependencies = [
  "parallel_guard_macro",
  "scopeguard",
  "serde",
+ "serde_bytes",
  "sha2",
  "strum 0.27.1",
  "strum_macros 0.27.1",
@@ -985,6 +986,7 @@ dependencies = [
  "ic_principal",
  "num-bigint",
  "serde",
+ "serde_bytes",
  "strum 0.27.1",
  "strum_macros 0.27.1",
 ]

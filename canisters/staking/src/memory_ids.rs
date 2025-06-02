@@ -30,3 +30,6 @@ pub const STAKING_SUBSCRIPTION_SEQ: u8 = 41;
 /// Memory of staking pool transaction record ID definition
 pub const STAKING_POOL_TRANSACTION_RECORD: u8 = 50;
 pub const STAKING_POOL_TRANSACTION_RECORD_TYPE_INDEX: u8 = 51;
+
+/// Memory of NNS staking record ID definition
+pub const NNS_STAKING_EXECUTE_RECORD: u8 = 60;

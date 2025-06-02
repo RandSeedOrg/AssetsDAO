@@ -5,7 +5,6 @@ use types::{entities::remove_indexed_id, sys::ExteralCanisterLabels};
 
 use crate::{
   account::{
-    guard_keys::get_recovery_dissolve_guard_key,
     stable_structures::{StakingAccount, StakingAccountStatus},
     transport_structures::StakingAccountVo,
     STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX_MAP,
@@ -17,6 +16,7 @@ use crate::{
       save_stake_pay_center_transfer_fail_event,
     },
   },
+  guard_keys::get_recovery_dissolve_guard_key,
   parallel_guard::EntryGuard,
   system_configs::get_exteral_canister_id,
 };

@@ -9,8 +9,10 @@ use types::EntityId;
 
 pub mod account;
 pub mod event_log;
+pub mod guard_keys;
 mod init;
 pub mod memory_ids;
+pub mod nns;
 pub mod on_chain;
 pub mod pool;
 pub mod pool_transaction_record;
@@ -41,10 +43,17 @@ use pool::transport_structures::StakingPoolVo;
 use account::client_transport_structures::EarlyUnstakePreCheckVo;
 use event_log::transport_structures::StakingEventLogPageRequest;
 use event_log::transport_structures::StakingEventLogPageResponse;
+use nns::transport_structures::NnsStakeExecuteRecordVo;
+use pool_transaction_record::stable_structures::PoolTransactionRecord;
+use pool_transaction_record::transport_structures::PoolTransactionQueryParams;
 use reward::transport_structures::StakingRewardPageRequest;
 use reward::transport_structures::StakingRewardPageResponse;
 use subscription::transport_structures::StakingSubscribeAddDto;
 use subscription::transport_structures::SubscriptionRequest;
 use subscription::transport_structures::SubscriptionResponse;
+use types::assets_management::ProposalId;
+use types::pagination::PageRequest;
+use types::pagination::PageResponse;
+use types::E8S;
 
 ic_cdk::export_candid!();

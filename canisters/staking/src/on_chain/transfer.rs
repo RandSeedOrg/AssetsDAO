@@ -9,7 +9,7 @@ use crate::system_configs::get_exteral_canister_id;
 
 use super::address::{
   generate_staking_account_account_identifier, generate_staking_account_subaccount, generate_staking_pool_account_identifier,
-  generate_staking_pool_subaccount,
+  generate_staking_pool_neuron_account, generate_staking_pool_subaccount,
 };
 
 /// Parsing from string AccountIdentifier
@@ -26,6 +26,7 @@ pub const TRANSFER_SCENE_STAKE: u64 = 1;
 pub const TRANSFER_SCENE_UNSTAKE: u64 = 2;
 pub const TRANSFER_SCENE_PAY_CENTER: u64 = 3;
 pub const TRANSFER_SCENE_UNSTAKE_PENALTY: u64 = 4;
+pub const TRANSFER_SCENE_NNS_STAKE: u64 = 5;
 
 pub async fn transfer_from_staking_pool_to_staking_account(
   pool_id: StakingPoolId,
@@ -136,4 +137,14 @@ async fn transfer(from_account: &Subaccount, to_account: &AccountIdentifier, amo
     Ok((Err(error),)) => Err(format!("Transfer failed: {:?}", error)),
     Err(error) => Err(format!("Transfer failed: {:?}", error)),
   }
+}
+
+/// Transfer from the Pledge pool to the payment center. The current scenario is that when a user initiates early release of the Pledge, the resulting penalty is directly transferred to the payment center through the Pledge pool
+pub async fn transfer_from_staking_pool_to_nns_neuron(pool_id: StakingPoolId, amount: E8S) -> Result<BlockIndex, String> {
+  // Transfer out of the account
+  let from_account = generate_staking_pool_subaccount(pool_id);
+  let to_account = generate_staking_pool_neuron_account(pool_id);
+
+  // Perform a transfer
+  transfer(&from_account, &to_account, amount, Memo(TRANSFER_SCENE_NNS_STAKE)).await
 }

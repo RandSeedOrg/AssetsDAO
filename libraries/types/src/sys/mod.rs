@@ -19,6 +19,8 @@ pub enum ExteralCanisterLabels {
   Play,
   #[strum(serialize = "Messenger")]
   Messenger,
+  #[strum(serialize = "Staking")]
+  Staking,
 }
 
 /// System switch, map system_switches dictionary in system configuration

@@ -13,7 +13,7 @@ use types::{
 
 use super::{
   transport_structures::{AddProposalDto, UpdateProposalDto},
-  PROPOSAL_ID,
+  PROPOSAL_ID, PROPOSAL_MAP,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
@@ -23,7 +23,7 @@ pub struct Proposal {
   pub description: Option<String>,
   pub status: Option<ProposalStatus>,
   pub proposal_initiator: Option<UserId>,
-  pub proposal_instruction: Option<ProposalInstruction>,
+  pub proposal_instruction: Option<ProposalInstructionType>,
   pub meta: Option<MetaData>,
 }
 
@@ -35,13 +35,10 @@ impl Proposal {
       id: Some(new_proposal_id),
       title: Some(dto.title.clone()),
       description: Some(dto.description.clone()),
+      // 这里的状态本该是Created，但现在暂不实现投票功能，因此直接将其状态设置为 Passed
       status: Some(ProposalStatus::Created),
       proposal_initiator: Some(ic_cdk::api::canister_self().to_text()),
-      proposal_instruction: Some(ProposalInstruction {
-        instruction_type: Some(dto.instruction_type.clone()),
-        instruction_status: Some(ProposalInstructionStatus::NotReady),
-        meta: Some(meta.clone()),
-      }),
+      proposal_instruction: Some(dto.instruction_type.clone()),
       meta: Some(meta.clone()),
     }
   }
@@ -50,12 +47,29 @@ impl Proposal {
     let add_dto = &dto.add_dto;
     self.title = Some(add_dto.title.clone());
     self.description = Some(add_dto.description.clone());
-    self.proposal_instruction = Some(ProposalInstruction {
-      instruction_type: Some(add_dto.instruction_type.clone()),
-      instruction_status: Some(ProposalInstructionStatus::NotReady),
-      meta: Some(self.get_proposal_instruction().get_meta().update()),
-    });
+    self.proposal_instruction = Some(add_dto.instruction_type.clone());
     self.meta = Some(self.get_meta().update());
+  }
+
+  pub fn executed_nns_stake(&mut self, neuron_id: u64) -> Result<(), String> {
+    self.status = Some(ProposalStatus::Executed);
+    let mut instruction = self.get_proposal_instruction();
+
+    if let ProposalInstructionType::NNSStake { .. } = instruction {
+      instruction.set_neuron_id(neuron_id);
+      self.proposal_instruction = Some(instruction);
+      self.meta = Some(self.get_meta().update());
+      self.update_to_stable();
+      Ok(())
+    } else {
+      return Err("Proposal instruction is not NNSStake".to_string());
+    }
+  }
+
+  pub fn update_to_stable(&self) {
+    PROPOSAL_MAP.with(|map| {
+      map.borrow_mut().insert(self.get_id(), self.clone());
+    });
   }
 
   pub fn get_id(&self) -> ProposalId {
@@ -74,16 +88,18 @@ impl Proposal {
     self.status.clone().unwrap_or(ProposalStatus::Created)
   }
 
+  pub fn set_status(&mut self, status: ProposalStatus) {
+    self.status = Some(status);
+    self.meta = Some(self.get_meta().update());
+    self.update_to_stable();
+  }
+
   pub fn get_proposal_initiator(&self) -> UserId {
     self.proposal_initiator.clone().unwrap_or_default()
   }
 
-  pub fn get_proposal_instruction(&self) -> ProposalInstruction {
-    self.proposal_instruction.clone().unwrap_or(ProposalInstruction {
-      instruction_type: None,
-      instruction_status: None,
-      meta: None,
-    })
+  pub fn get_proposal_instruction(&self) -> ProposalInstructionType {
+    self.proposal_instruction.clone().unwrap_or(ProposalInstructionType::None)
   }
 
   pub fn get_meta(&self) -> MetaData {
@@ -91,14 +107,14 @@ impl Proposal {
   }
 }
 
-#[derive(EnumString, Display, Debug, Clone, Serialize, Deserialize, CandidType)]
+#[derive(EnumString, Display, Debug, Clone, Serialize, Deserialize, CandidType, PartialEq, Eq)]
 pub enum ProposalStatus {
   /// New creations can be edited, but cannot be changed until voting is open
   #[strum(serialize = "0")]
   Created,
   /// During the open voting phase, all staking accounts can vote until the voting ends.
   #[strum(serialize = "1")]
-  OpenVoting,
+  Voting,
   /// The vote is passed, and the proposal instructions can be executed at this time
   #[strum(serialize = "2")]
   Passed,
@@ -110,29 +126,6 @@ pub enum ProposalStatus {
   Executed,
 }
 
-/// Proposal instructions are used to accurately describe the actions to be performed.
-/// The execution time, and the execution results of the proposal
-#[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
-pub struct ProposalInstruction {
-  pub instruction_type: Option<ProposalInstructionType>,
-  pub instruction_status: Option<ProposalInstructionStatus>,
-  pub meta: Option<MetaData>,
-}
-
-impl ProposalInstruction {
-  pub fn get_instruction_type(&self) -> ProposalInstructionType {
-    self.instruction_type.clone().unwrap_or(ProposalInstructionType::None)
-  }
-
-  pub fn get_instruction_status(&self) -> ProposalInstructionStatus {
-    self.instruction_status.clone().unwrap_or(ProposalInstructionStatus::NotReady)
-  }
-
-  pub fn get_meta(&self) -> MetaData {
-    self.meta.clone().unwrap_or_default()
-  }
-}
-
 /// The Proposal Instruction Type, which describes the purpose of the instruction and the metadata required for the instruction to execute
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
 pub enum ProposalInstructionType {
@@ -142,7 +135,6 @@ pub enum ProposalInstructionType {
   NNSStake {
     pool_id: StakingPoolId,
     amount: E8S,
-    duration: u16,
     neuron_id: Option<u64>,
   },
   /// Transfer the specified amount of funds in the staking pool to the jackpot account
@@ -153,24 +145,28 @@ pub enum ProposalInstructionType {
   },
 }
 
-/// The status of the proposal instruction
-#[derive(EnumString, Display, Debug, Clone, Serialize, Deserialize, CandidType)]
-pub enum ProposalInstructionStatus {
-  /// The proposal has not been voted on yet, so the instructions are not ready
-  #[strum(serialize = "0")]
-  NotReady,
-  /// The proposal has been voted through and is awaiting execution
-  #[strum(serialize = "1")]
-  Pending,
-  /// The instruction is being executed
-  #[strum(serialize = "2")]
-  InProgress,
-  /// The instruction was executed successfully
-  #[strum(serialize = "3")]
-  Succeed,
-  /// The instruction was executed but failed
-  #[strum(serialize = "4")]
-  Failed,
+impl ProposalInstructionType {
+  pub fn get_pool_id(&self) -> StakingPoolId {
+    match self {
+      ProposalInstructionType::NNSStake { pool_id, .. } => *pool_id,
+      ProposalInstructionType::JackpotInvestment { pool_id, .. } => *pool_id,
+      ProposalInstructionType::None => StakingPoolId::default(),
+    }
+  }
+
+  pub fn set_neuron_id(&mut self, neuron_id: u64) {
+    if let ProposalInstructionType::NNSStake { neuron_id: ref mut id, .. } = self {
+      *id = Some(neuron_id);
+    }
+  }
+
+  pub fn get_amount(&self) -> E8S {
+    match self {
+      ProposalInstructionType::NNSStake { amount, .. } => *amount,
+      ProposalInstructionType::JackpotInvestment { amount, .. } => *amount,
+      ProposalInstructionType::None => 0,
+    }
+  }
 }
 
 impl Storable for Proposal {

@@ -32,6 +32,15 @@ impl<T: CandidType> PageResponse<T> {
     }
   }
 
+  pub fn new_empty(page: u32, page_size: u32) -> Self {
+    Self {
+      page,
+      page_size,
+      total: 0,
+      records: Vec::new(),
+    }
+  }
+
   /// Record start position
   pub fn start(&self) -> u32 {
     (self.page - 1) * self.page_size

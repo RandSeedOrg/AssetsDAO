@@ -10,8 +10,10 @@ use crate::{
 };
 
 pub mod crud;
+pub mod operation;
 pub mod stable_structures;
 pub mod transport_structures;
+pub mod utils;
 
 thread_local! {
   /// Proposal sequence stable storage

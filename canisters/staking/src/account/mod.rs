@@ -24,7 +24,6 @@ pub mod badge_utils;
 pub mod client_api;
 pub mod client_transport_structures;
 pub mod crud_utils;
-pub mod guard_keys;
 pub mod operation_utils;
 pub mod recovery_errors;
 pub mod stable_structures;

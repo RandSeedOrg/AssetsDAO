@@ -12,6 +12,7 @@ ic_principal = { workspace = true }
 ic-stable-structures = { workspace = true }
 
 serde = { workspace = true }
+serde_bytes = { workspace = true }
 
 strum = { workspace = true }
 strum_macros = { workspace = true }

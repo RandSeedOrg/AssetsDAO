@@ -1,5 +1,6 @@
 use candid::Principal;
-use ic_ledger_types::{AccountIdentifier, Subaccount};
+use ic_ledger_types::{AccountIdentifier, Subaccount, MAINNET_GOVERNANCE_CANISTER_ID};
+use sha2::{Digest, Sha256};
 use types::{
   staking::{StakingAccountId, StakingPoolId},
   EntityId,
@@ -57,6 +58,29 @@ pub fn generate_staking_account_subaccount(account_id: EntityId) -> Subaccount {
 
 fn generate_account_identifier(principal: Principal, account_id: &str) -> AccountIdentifier {
   AccountIdentifier::new(&principal, &generate_subaccount(&account_id))
+}
+
+/// Computes the bytes of the subaccount to which neuron staking transfers are made. This
+/// function must be kept in sync with the Nervous System UI equivalent.
+/// This code comes from the IC repo:
+/// https://github.com/dfinity/ic/blob/master/rs/nervous_system/common/src/ledger.rs#L211
+fn compute_neuron_staking_subaccount_bytes(controller: Principal, nonce: u64) -> [u8; 32] {
+  const DOMAIN: &[u8] = b"neuron-stake";
+  const DOMAIN_LENGTH: [u8; 1] = [0x0c];
+
+  let mut hasher = Sha256::new();
+  hasher.update(DOMAIN_LENGTH);
+  hasher.update(DOMAIN);
+  hasher.update(controller.as_slice());
+  hasher.update(nonce.to_be_bytes());
+  hasher.finalize().into()
+}
+
+/// Generate a nns neuron account identifier for staking pool
+pub fn generate_staking_pool_neuron_account(pool_id: StakingPoolId) -> AccountIdentifier {
+  let canister_id = ic_cdk::api::canister_self();
+  let account_buf = compute_neuron_staking_subaccount_bytes(canister_id, pool_id);
+  AccountIdentifier::new(&MAINNET_GOVERNANCE_CANISTER_ID, &Subaccount(account_buf))
 }
 
 /// Generate a standard ICP Account address
