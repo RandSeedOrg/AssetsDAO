@@ -28,6 +28,7 @@ use dao::proposal::transport_structures::AddProposalDto;
 use dao::proposal::transport_structures::ProposalListParams;
 use dao::proposal::transport_structures::ProposalVo;
 use dao::proposal::transport_structures::UpdateProposalDto;
+use transfer_address::transfer_structures::TransferAddressVo;
 use types::assets_management::ProposalId;
 use types::pagination::PageRequest;
 use types::pagination::PageResponse;
