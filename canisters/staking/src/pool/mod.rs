@@ -12,6 +12,8 @@ use crate::{
     save_change_staking_pool_status_event_log, save_change_staking_pool_visible_event_log, save_update_staking_pool_event_log,
   },
   memory_ids::{STAKING_POOL, STAKING_POOL_SEQ},
+  on_chain::address::{generate_staking_pool_account_identifier, generate_staking_pool_neuron_account},
+  pool::transport_structures::StakingPoolAccountIds,
   MEMORY_MANAGER,
 };
 
@@ -137,4 +139,16 @@ fn update_staking_pool(dto: StakingPoolUpdateDto) -> Option<String> {
     save_update_staking_pool_event_log(&staking_pool);
     None
   })
+}
+
+#[ic_cdk::query]
+fn query_pool_account_ids(pool_id: StakingPoolId) -> StakingPoolAccountIds {
+  let nns_neuron_account_id = generate_staking_pool_neuron_account(pool_id).to_hex();
+  let staking_pool_account_id = generate_staking_pool_account_identifier(pool_id).to_hex();
+
+  StakingPoolAccountIds {
+    pool_id,
+    nns_neuron_account_id,
+    staking_pool_account_id,
+  }
 }

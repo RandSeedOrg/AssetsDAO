@@ -11,6 +11,8 @@ use types::{
   UserId, E8S,
 };
 
+use crate::transfer_address::stable_structures::TransferAddressType;
+
 use super::{
   transport_structures::{AddProposalDto, UpdateProposalDto},
   PROPOSAL_ID, PROPOSAL_MAP,
@@ -63,6 +65,25 @@ impl Proposal {
       Ok(())
     } else {
       return Err("Proposal instruction is not NNSStake".to_string());
+    }
+  }
+
+  pub fn executed_add_transfer_address(&mut self, transfer_address_id: u64) -> Result<(), String> {
+    self.status = Some(ProposalStatus::Executed);
+    let mut instruction = self.get_proposal_instruction();
+
+    if let ProposalInstructionType::AddTransferAddress { ref mut id, .. } = instruction {
+      if id.is_some() {
+        return Err("Transfer address already exists".to_string());
+      }
+
+      *id = Some(transfer_address_id);
+      self.proposal_instruction = Some(instruction);
+      self.meta = Some(self.get_meta().update());
+      self.update_to_stable();
+      Ok(())
+    } else {
+      return Err("Proposal instruction is not AddTransferAddress".to_string());
     }
   }
 
@@ -143,6 +164,16 @@ pub enum ProposalInstructionType {
     jackpot_id: JackpotId,
     amount: E8S,
   },
+  /// Add transfer address
+  AddTransferAddress {
+    id: Option<u64>,
+    name: String,
+    usage: String,
+    network: String,
+    crypto: String,
+    address: String,
+    address_type: TransferAddressType,
+  },
 }
 
 impl ProposalInstructionType {
@@ -151,6 +182,7 @@ impl ProposalInstructionType {
       ProposalInstructionType::NNSStake { pool_id, .. } => *pool_id,
       ProposalInstructionType::JackpotInvestment { pool_id, .. } => *pool_id,
       ProposalInstructionType::None => StakingPoolId::default(),
+      ProposalInstructionType::AddTransferAddress { .. } => StakingPoolId::default(),
     }
   }
 
@@ -165,6 +197,7 @@ impl ProposalInstructionType {
       ProposalInstructionType::NNSStake { amount, .. } => *amount,
       ProposalInstructionType::JackpotInvestment { amount, .. } => *amount,
       ProposalInstructionType::None => 0,
+      ProposalInstructionType::AddTransferAddress { .. } => 0,
     }
   }
 }

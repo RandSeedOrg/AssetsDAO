@@ -10,3 +10,4 @@ pub const PROPOSAL_MAP_MEMORY_ID: MemoryId = MemoryId::new(11);
 
 /// The Memory ID associated with the transfer address is between 20 and 29.
 pub const TRANSFER_ADDRESS_MEMORY_ID: MemoryId = MemoryId::new(20);
+pub const TRANSFER_ADDRESS_SEQ_MEMORY_ID: MemoryId = MemoryId::new(21);

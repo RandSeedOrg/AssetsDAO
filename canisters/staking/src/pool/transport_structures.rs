@@ -1,6 +1,6 @@
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
-use types::{EntityId, TimestampNanos, E8S};
+use types::{staking::StakingPoolId, EntityId, TimestampNanos, E8S};
 
 use super::stable_structures::{LimitConfig, RewardConfig, StakingPool, TermConfig};
 
@@ -183,4 +183,11 @@ impl StakingPoolVo {
       available_funds: pool.get_available_funds().unwrap_or_default(),
     }
   }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
+pub struct StakingPoolAccountIds {
+  pub pool_id: StakingPoolId,
+  pub nns_neuron_account_id: String,
+  pub staking_pool_account_id: String,
 }
