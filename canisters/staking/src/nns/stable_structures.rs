@@ -112,6 +112,17 @@ impl NnsStakeExecuteRecord {
   pub fn get_transfer_block_index(&self) -> BlockIndex {
     self.pool_to_neuron_transfer_block_index.unwrap_or_default()
   }
+
+  pub fn get_meta(&self) -> Cow<MetaData> {
+    match &self.meta {
+      Some(meta) => Cow::Borrowed(meta),
+      None => Cow::Owned(MetaData::init_create_scene()),
+    }
+  }
+
+  pub fn get_updated_at(&self) -> u64 {
+    self.get_meta().get_updated_at()
+  }
 }
 
 impl Storable for NnsStakeExecuteRecord {

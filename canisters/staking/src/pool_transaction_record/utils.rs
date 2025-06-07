@@ -1,5 +1,5 @@
 use ic_ledger_types::BlockIndex;
-use types::{btree_set_entity_index::add_indexed_id, staking::StakingPoolId};
+use types::{btree_set_entity_index::add_indexed_id, staking::StakingPoolId, TimestampNanos};
 
 use crate::{account::stable_structures::StakingAccount, nns::stable_structures::NnsStakeExecuteRecord};
 
@@ -14,12 +14,13 @@ fn record_transaction(
   record_type: &RecordType,
   amount: i64,
   block_index: BlockIndex,
+  create_time: TimestampNanos,
 ) -> Result<PoolTransactionRecord, String> {
   STAKING_POOL_TRANSACTION_RECORD_MAP.with(|map| {
     let mut map = map.borrow_mut();
     let mut records = map.get(&pool_id).unwrap_or_else(|| PoolTransactionRecords::new_empty(pool_id));
 
-    let new_record = records.add_record(amount, record_type.clone(), block_index);
+    let new_record = records.add_record(amount, record_type.clone(), block_index, create_time);
     map.insert(pool_id, records.clone());
 
     STAKING_POOL_TRANSACTION_RECORD_TYPE_INDEX_MAP
@@ -36,6 +37,7 @@ pub fn record_stake_transaction(account: &StakingAccount) -> Result<(), String> 
     &RecordType::Staking(account.get_id()),
     account.get_staked_amount() as i64,
     account.get_stake_account_to_pool_onchain_tx_id(),
+    account.get_stake_time(),
   )?;
   // Record the pay center prepaid fee transaction of the staking pool
   record_transaction(
@@ -43,23 +45,28 @@ pub fn record_stake_transaction(account: &StakingAccount) -> Result<(), String> 
     &RecordType::PrepaidFee(staking_transaction.get_id()),
     20_000,
     account.get_stake_account_to_pool_onchain_tx_id(),
+    account.get_stake_time(),
   )?;
 
   Ok(())
 }
 
 pub fn record_unstake_transaction(account: &StakingAccount) -> Result<(), String> {
+  let release_time = account.get_release_time();
+
   let unstaking_transaction = record_transaction(
     account.get_pool_id(),
     &RecordType::Unstaking(account.get_id()),
     -(account.get_released_amount() as i64),
     account.get_release_onchain_tx_id(),
+    release_time,
   )?;
   record_transaction(
     account.get_pool_id(),
     &RecordType::Fee(unstaking_transaction.get_id()),
     -10_000,
     account.get_release_onchain_tx_id(),
+    release_time,
   )?;
 
   if account.get_penalty_amount() > 0 {
@@ -69,6 +76,7 @@ pub fn record_unstake_transaction(account: &StakingAccount) -> Result<(), String
       &RecordType::EarlyUnstakePenalty(account.get_id()),
       -(account.get_penalty_amount() as i64),
       account.get_release_onchain_tx_id(),
+      release_time,
     )?;
   }
 
@@ -77,6 +85,8 @@ pub fn record_unstake_transaction(account: &StakingAccount) -> Result<(), String
 
 /// Record a transaction for the NNS neuron stake
 pub fn record_stake_to_neuron_transaction(execute_record: &NnsStakeExecuteRecord) -> Result<(), String> {
+  let execute_time = execute_record.get_updated_at();
+
   let nns_neuron_transaction = record_transaction(
     execute_record.get_pool_id(),
     &RecordType::NNSNeuronStake {
@@ -84,6 +94,7 @@ pub fn record_stake_to_neuron_transaction(execute_record: &NnsStakeExecuteRecord
     },
     -(execute_record.get_amount() as i64),
     execute_record.get_transfer_block_index(),
+    execute_time,
   )?;
 
   record_transaction(
@@ -91,6 +102,7 @@ pub fn record_stake_to_neuron_transaction(execute_record: &NnsStakeExecuteRecord
     &RecordType::Fee(nns_neuron_transaction.get_id()),
     -10_000,
     execute_record.get_transfer_block_index(),
+    execute_time,
   )?;
 
   Ok(())
