@@ -1,4 +1,5 @@
 use ic_cdk::update;
+use system_configs_macro::has_permission_result;
 use types::{assets_management::ProposalId, sys::ExteralCanisterLabels};
 
 use crate::{guard_keys::get_execute_proposal_guard_key, parallel_guard::EntryGuard, system_configs::get_exteral_canister_id};
@@ -9,6 +10,7 @@ use super::{
 };
 
 #[update]
+#[has_permission_result("assets_management::proposal::execute")]
 async fn execute_proposal(proposal_id: ProposalId) -> Result<u64, String> {
   if proposal_id == 0 {
     return Err("Invalid proposal ID".to_string());
@@ -60,6 +62,7 @@ async fn execute_proposal(proposal_id: ProposalId) -> Result<u64, String> {
 }
 
 #[update]
+#[has_permission_result("assets_management::proposal::change_status")]
 fn change_status(proposal_id: ProposalId, status: String) -> Result<(), String> {
   if proposal_id == 0 {
     return Err("Invalid proposal ID".to_string());

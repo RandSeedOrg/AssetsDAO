@@ -8,7 +8,7 @@ use types::{
   pagination::PageResponse,
   product::ProductId,
   staking::{PoolTransactionRecordId, StakingAccountId, StakingPoolId},
-  EntityId, E8S,
+  EntityId, TimestampNanos, E8S,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
@@ -50,11 +50,11 @@ impl PoolTransactionRecords {
       .cloned()
   }
 
-  pub fn add_record(&mut self, amount: i64, record_type: RecordType, block_index: BlockIndex) -> PoolTransactionRecord {
+  pub fn add_record(&mut self, amount: i64, record_type: RecordType, block_index: BlockIndex, create_time: TimestampNanos) -> PoolTransactionRecord {
     let newest_record = self.get_newest_transaction_record();
 
     let new_record = if let Some(record) = newest_record {
-      record.next_record(amount, record_type, block_index)
+      record.next_record(amount, record_type, block_index, create_time)
     } else {
       assert!(amount > 0, "The first transaction record must be a deposit");
 
@@ -64,7 +64,7 @@ impl PoolTransactionRecords {
         balance: Some(amount as E8S),
         record_type: Some(record_type),
         block_index: Some(block_index),
-        created_at: Some(ic_cdk::api::time()),
+        created_at: Some(create_time),
       }
     };
 
@@ -118,7 +118,7 @@ pub struct PoolTransactionRecord {
 }
 
 impl PoolTransactionRecord {
-  pub fn next_record(&self, amount: i64, record_type: RecordType, block_index: BlockIndex) -> PoolTransactionRecord {
+  pub fn next_record(&self, amount: i64, record_type: RecordType, block_index: BlockIndex, create_time: TimestampNanos) -> PoolTransactionRecord {
     PoolTransactionRecord {
       id: Some(self.get_id() + 1),
       amount: Some(amount),
@@ -129,7 +129,7 @@ impl PoolTransactionRecord {
       }),
       record_type: Some(record_type),
       block_index: Some(block_index),
-      created_at: Some(ic_cdk::api::time()),
+      created_at: Some(create_time),
     }
   }
 

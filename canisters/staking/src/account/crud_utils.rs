@@ -165,3 +165,33 @@ pub fn delete_staking_account(account_id: &StakingAccountId) -> Result<(), Strin
     Ok(())
   })
 }
+
+pub fn query_staking_account_with_pool_id(pool_id: StakingPoolId) -> Vec<StakingAccount> {
+  let account_ids = STAKING_POOL_ACCOUNT_INDEX_MAP.with(|map| {
+    let account_ids = get_indexed_ids(map, &pool_id);
+    if account_ids.is_empty() {
+      return vec![];
+    }
+
+    account_ids
+  });
+
+  STAKING_ACCOUNT_MAP.with(|account_map| {
+    let account_map = account_map.borrow();
+    account_ids
+      .iter()
+      .filter_map(|id| {
+        let account = account_map.get(id);
+        if let Some(account) = account {
+          if account.get_status() != StakingAccountStatus::Created {
+            Some(account.clone())
+          } else {
+            None // Skip accounts that are in the Created status
+          }
+        } else {
+          None // Skip if account not found
+        }
+      })
+      .collect::<Vec<StakingAccount>>()
+  })
+}

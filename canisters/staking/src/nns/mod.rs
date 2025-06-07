@@ -4,6 +4,7 @@ use ic_cdk::{query, update};
 use ic_stable_structures::{memory_manager::MemoryId, StableBTreeMap};
 use nns_governance_api::nns_governance_api::Neuron;
 use stable_structures::NnsStakeExecuteRecord;
+use system_configs_macro::has_permission_result;
 use transport_structures::NnsStakeExecuteRecordVo;
 use types::{assets_management::ProposalId, stable_structures::Memory, staking::StakingPoolId, E8S};
 use utils::{nns_query::sync_nns_neuron, nns_update::refresh_nns_neuron_by_pool};
@@ -42,6 +43,7 @@ thread_local! {
 }
 
 #[update]
+#[has_permission_result("staking::nns::stake_to_nns_neuron")]
 async fn stake_to_nns_neuron(proposal_id: ProposalId, pool_id: StakingPoolId, amount: E8S) -> Result<u64, String> {
   let mut execute_record = NnsStakeExecuteRecord::init_with(proposal_id, pool_id, amount);
 
