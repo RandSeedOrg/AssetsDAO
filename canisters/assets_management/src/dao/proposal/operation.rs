@@ -2,7 +2,10 @@ use ic_cdk::update;
 use system_configs_macro::has_permission_result;
 use types::{assets_management::ProposalId, sys::ExteralCanisterLabels};
 
-use crate::{guard_keys::get_execute_proposal_guard_key, parallel_guard::EntryGuard, system_configs::get_exteral_canister_id};
+use crate::{
+  guard_keys::get_execute_proposal_guard_key, parallel_guard::EntryGuard, system_configs::get_exteral_canister_id,
+  transfer_address::stable_structures::TransferAddress,
+};
 
 use super::{
   stable_structures::{ProposalInstructionType, ProposalStatus},
@@ -57,6 +60,21 @@ async fn execute_proposal(proposal_id: ProposalId) -> Result<u64, String> {
       jackpot_id: _,
       amount: _,
     } => Err("Jackpot investment not implemented".to_string()),
+    ProposalInstructionType::AddTransferAddress {
+      id: _,
+      name,
+      usage,
+      network,
+      crypto,
+      address,
+      address_type,
+    } => {
+      let transfer_address = TransferAddress::new(proposal_id, name, usage, network, crypto, address, address_type)?;
+
+      proposal.executed_add_transfer_address(transfer_address.get_id())?;
+
+      Ok(transfer_address.get_id())
+    }
     ProposalInstructionType::None => Err("No action needed for None instruction".to_string()),
   }
 }

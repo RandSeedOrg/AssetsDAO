@@ -45,6 +45,7 @@ use event_log::transport_structures::StakingEventLogPageRequest;
 use event_log::transport_structures::StakingEventLogPageResponse;
 use nns::transport_structures::NnsStakeExecuteRecordVo;
 use nns_governance_api::nns_governance_api::Neuron;
+use pool::transport_structures::StakingPoolAccountIds;
 use pool_transaction_record::stable_structures::PoolTransactionRecord;
 use pool_transaction_record::transport_structures::PoolTransactionQueryParams;
 use reward::transport_structures::StakingRewardPageRequest;
