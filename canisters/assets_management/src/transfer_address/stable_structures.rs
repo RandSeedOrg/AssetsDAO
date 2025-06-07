@@ -77,6 +77,42 @@ impl TransferAddress {
   pub fn get_id(&self) -> TransferAddressId {
     self.id.unwrap_or_default()
   }
+
+  pub fn get_proposal_id(&self) -> ProposalId {
+    self.proposal_id.unwrap_or_default()
+  }
+
+  pub fn get_name(&self) -> String {
+    self.name.clone().unwrap_or_default()
+  }
+
+  pub fn get_usage(&self) -> String {
+    self.usage.clone().unwrap_or_default()
+  }
+
+  pub fn get_network(&self) -> BlockChain {
+    self.network.clone().unwrap_or(BlockChain::ICP)
+  }
+
+  pub fn get_crypto(&self) -> Crypto {
+    self.crypto.clone().unwrap_or(Crypto::ICP)
+  }
+
+  pub fn get_address(&self) -> String {
+    self.address.clone().unwrap_or_default()
+  }
+
+  pub fn get_status(&self) -> TransferAddressStatus {
+    self.status.clone().unwrap_or(TransferAddressStatus::Activated)
+  }
+
+  pub fn get_address_type(&self) -> TransferAddressType {
+    self.address_type.clone().unwrap_or(TransferAddressType::Other)
+  }
+
+  pub fn get_meta(&self) -> MetaData {
+    self.meta.clone().unwrap_or_default()
+  }
 }
 
 /// Asset transfer address status
@@ -86,6 +122,15 @@ pub enum TransferAddressStatus {
   Activated,
   /// If you actively propose a proposal to abandon the address, the address will become invalid after the proposal is passed
   Invalid,
+}
+
+impl TransferAddressStatus {
+  pub fn to_string(&self) -> String {
+    match self {
+      TransferAddressStatus::Activated => "Activated".to_string(),
+      TransferAddressStatus::Invalid => "Invalid".to_string(),
+    }
+  }
 }
 
 /// Transfer address type
