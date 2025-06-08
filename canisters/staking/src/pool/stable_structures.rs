@@ -52,6 +52,8 @@ pub struct StakingPool {
   pub term_config: Option<TermConfig>,
   /// Staking pool reward configuration
   pub reward_config: Option<RewardConfig>,
+  /// Multiple reward configurations can be set
+  pub reward_configs: Option<Vec<RewardConfig>>,
   /// Open staking time
   pub open_time: Option<TimestampNanos>,
   /// close staking time
@@ -71,7 +73,7 @@ impl StakingPool {
     let crypto = Crypto::from_str(&dto.crypto).unwrap_or(Crypto::ICP);
 
     // Staking pool reward currency，Used by defaultBONUS
-    let reward_crypto = RewardCrypto::from_str(&dto.reward_config.reward_crypto).unwrap_or(RewardCrypto::BONUS);
+    // let reward_crypto = RewardCrypto::from_str(&dto.reward_config.reward_crypto).unwrap_or(RewardCrypto::BONUS);
 
     // Generate a staking pool on-chain address
     let address = generate_staking_pool_chain_address(id);
@@ -97,11 +99,20 @@ impl StakingPool {
         max_term: Some(dto.term_config.max_term),
         min_early_unstake_days: Some(dto.term_config.min_early_unstake_days),
       }),
-      reward_config: Some(RewardConfig {
-        annualized_interest_rate: Some(dto.reward_config.annualized_interest_rate),
-        daily_interest_rate: Some(dto.reward_config.daily_interest_rate),
-        reward_crypto: Some(reward_crypto),
-      }),
+      reward_config: None,
+      reward_configs: Some(
+        dto
+          .reward_configs
+          .iter()
+          .map(|config| RewardConfig {
+            annualized_interest_rate: Some(config.annualized_interest_rate),
+            daily_interest_rate: Some(config.daily_interest_rate),
+            reward_crypto: Some(RewardCrypto::from_str(&config.reward_crypto).unwrap_or(RewardCrypto::BONUS)),
+            min_stake_days: if config.min_stake_days == 0 { None } else { Some(config.min_stake_days) },
+            max_stake_days: if config.max_stake_days == 0 { None } else { Some(config.max_stake_days) },
+          })
+          .collect(),
+      ),
       open_time: None,
       close_time: None,
       end_time: None,
@@ -137,11 +148,23 @@ impl StakingPool {
       max_term: Some(dto.term_config.max_term),
       min_early_unstake_days: Some(dto.term_config.min_early_unstake_days),
     });
-    self.reward_config = Some(RewardConfig {
-      annualized_interest_rate: Some(dto.reward_config.annualized_interest_rate),
-      daily_interest_rate: Some(dto.reward_config.daily_interest_rate),
-      reward_crypto: Some(RewardCrypto::from_str(&dto.reward_config.reward_crypto).unwrap_or(RewardCrypto::BONUS)),
-    });
+
+    self.reward_config = None;
+
+    self.reward_configs = Some(
+      dto
+        .reward_configs
+        .iter()
+        .map(|config| RewardConfig {
+          annualized_interest_rate: Some(config.annualized_interest_rate),
+          daily_interest_rate: Some(config.daily_interest_rate),
+          reward_crypto: Some(RewardCrypto::from_str(&config.reward_crypto).unwrap_or(RewardCrypto::BONUS)),
+          min_stake_days: if config.min_stake_days == 0 { None } else { Some(config.min_stake_days) },
+          max_stake_days: if config.max_stake_days == 0 { None } else { Some(config.max_stake_days) },
+        })
+        .collect(),
+    );
+
     self.crypto = Some(Crypto::from_str(&dto.crypto).unwrap_or(Crypto::ICP));
 
     // When updating, if the Staking pool state is Cancelled, then reset it to Created
@@ -472,6 +495,14 @@ impl StakingPool {
     self.reward_config.clone().unwrap_or_default()
   }
 
+  pub fn get_reward_configs(&self) -> Cow<Vec<RewardConfig>> {
+    if let Some(configs) = &self.reward_configs {
+      return Cow::Borrowed(configs);
+    } else {
+      Cow::Owned(vec![self.get_reward_config()])
+    }
+  }
+
   pub fn get_limit_config(&self) -> LimitConfig {
     self.limit_config.clone().unwrap_or_default()
   }
@@ -514,6 +545,10 @@ pub struct RewardConfig {
   pub daily_interest_rate: Option<E8S>,
   /// Staking pool reward currency
   pub reward_crypto: Option<RewardCrypto>,
+  /// Minimum stake days
+  pub min_stake_days: Option<u16>,
+  /// Maximum stake days
+  pub max_stake_days: Option<u16>,
 }
 
 impl RewardConfig {
@@ -527,6 +562,20 @@ impl RewardConfig {
 
   pub fn get_reward_crypto(&self) -> RewardCrypto {
     self.reward_crypto.clone().unwrap_or(RewardCrypto::BONUS)
+  }
+
+  pub fn get_min_stake_days(&self) -> u16 {
+    self.min_stake_days.unwrap_or_default()
+  }
+
+  pub fn get_max_stake_days(&self) -> u16 {
+    let max = self.max_stake_days.unwrap_or_default();
+
+    if max == 0 {
+      u16::MAX
+    } else {
+      max
+    }
   }
 }
 
