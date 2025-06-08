@@ -22,7 +22,7 @@ pub struct StakingPoolAddDto {
   /// Staking pool term configuration
   pub term_config: TermConfigVo,
   /// Staking pool reward configuration
-  pub reward_config: RewardConfigVo,
+  pub reward_configs: Vec<RewardConfigVo>,
   /// Staking pool limit configuration
   pub limit_config: LimitConfigVo,
 }
@@ -55,6 +55,10 @@ pub struct RewardConfigVo {
   pub daily_interest_rate: E8S,
   /// The reward currency of the staking pool，refer to RewardCrypto enumerate
   pub reward_crypto: String,
+  /// The minimum number of days to stake
+  pub min_stake_days: u16,
+  /// The maximum number of days to stake
+  pub max_stake_days: u16,
 }
 
 impl RewardConfigVo {
@@ -63,6 +67,8 @@ impl RewardConfigVo {
       annualized_interest_rate: config.get_annualized_interest_rate(),
       daily_interest_rate: config.get_daily_interest_rate(),
       reward_crypto: config.get_reward_crypto().to_string(),
+      min_stake_days: config.get_min_stake_days(),
+      max_stake_days: config.get_max_stake_days(),
     }
   }
 }
@@ -112,8 +118,8 @@ pub struct StakingPoolVo {
   pub status: String,
   /// Term configuration information
   pub term_config: TermConfigVo,
-  /// stake reward configuration information
-  pub reward_config: RewardConfigVo,
+  /// List of reward configurations for the staking pool
+  pub reward_configs: Vec<RewardConfigVo>,
   /// Staking pool limit configuration information
   pub limit_config: LimitConfigVo,
   /// Is it visible to the client
@@ -147,7 +153,7 @@ impl StakingPoolVo {
       crypto: pool.get_crypto().to_string(),
       status: pool.get_status().to_string(),
       term_config: TermConfigVo::from_config(&pool.get_term_config()),
-      reward_config: RewardConfigVo::from_config(&pool.get_reward_config()),
+      reward_configs: pool.get_reward_configs().iter().map(RewardConfigVo::from_config).collect(),
       limit_config: LimitConfigVo::from_config(&pool.get_limit_config()),
       client_visible: pool.get_client_visible(),
       open_time: {

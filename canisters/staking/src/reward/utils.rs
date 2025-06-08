@@ -66,7 +66,7 @@ pub async fn distribute_reward(account: &StakingAccount, day: YearMonthDay) -> R
   };
 
   if reward.get_status() == StakingRewardStatus::Created {
-    // 1.1 If the staked account is in a new state，Update today's reward distribution index
+    // 1.1 If the staking account is in a new state，Update today's reward distribution index
     update_account_distributed_the_day(&reward, day);
   } else {
     // 1.2 The stake reward for the day has been issued，No reissue

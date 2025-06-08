@@ -82,6 +82,8 @@ pub struct StakingAccount {
   pub status: Option<StakingAccountStatus>,
   /// Reward configuration for staked accounts
   pub reward_config: Option<RewardConfig>,
+  /// Multiple reward configurations for staked accounts
+  pub reward_configs: Option<Vec<RewardConfig>>,
   pub stake_pay_center_onchain_tx_id: Option<u64>,
   /// Payment center transaction flow during stake ID
   pub stake_pay_center_tx_id: Option<u64>,
@@ -141,7 +143,8 @@ impl StakingAccount {
       penalty_amount: None,
       accumulated_rewards: None,
       status: Some(StakingAccountStatus::Created),
-      reward_config: Some(pool.get_reward_config()),
+      reward_config: None,
+      reward_configs: Some(pool.get_reward_configs().into_owned()),
       stake_pay_center_onchain_tx_id: None,
       stake_pay_center_tx_id: None,
       stake_account_to_pool_onchain_tx_id: None,
@@ -307,6 +310,25 @@ impl StakingAccount {
     }
   }
 
+  pub fn get_staked_days(&self) -> u16 {
+    let now = ic_cdk::api::time();
+    let stake_time = self.get_stake_time();
+    if stake_time > 0 {
+      let diff_time = now.checked_sub(stake_time).unwrap_or(0);
+      let one_day = 24 * 60 * 60 * 1_000_000_000;
+      let result = diff_time / one_day;
+
+      if result == 0 {
+        // If the difference is less than one day, return 1
+        return 1;
+      } else {
+        result as u16
+      }
+    } else {
+      0
+    }
+  }
+
   pub fn get_pool_id(&self) -> EntityId {
     self.pool_id.unwrap_or_default()
   }
@@ -342,6 +364,15 @@ impl StakingAccount {
   pub fn get_reward_config(&self) -> RewardConfig {
     self.reward_config.clone().unwrap_or_default()
   }
+
+  pub fn get_reward_configs(&self) -> Cow<Vec<RewardConfig>> {
+    if let Some(configs) = &self.reward_configs {
+      return Cow::Borrowed(configs);
+    } else {
+      Cow::Owned(vec![self.get_reward_config()])
+    }
+  }
+
   pub fn get_penalty_amount(&self) -> E8S {
     self.penalty_amount.unwrap_or_default()
   }
