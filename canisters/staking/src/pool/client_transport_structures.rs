@@ -39,7 +39,7 @@ pub struct ClientStakingPoolVo {
   /// stake currency，refer to Crypto enumerate
   pub crypto: String,
   /// Staking pool reward configuration
-  pub reward_config: RewardConfigVo,
+  pub reward_configs: Vec<RewardConfigVo>,
   /// Staking pool limit configuration
   pub limit_config: LimitConfigVo,
   /// Staking pool term configuration
@@ -101,7 +101,7 @@ impl ClientStakingPoolVo {
       stakers: pool.get_stake_user_count(),
       status: pool.get_status().to_string(),
       crypto: pool.get_crypto().to_string(),
-      reward_config: RewardConfigVo::from_config(&pool.get_reward_config()),
+      reward_configs: pool.get_reward_configs().iter().map(RewardConfigVo::from_config).collect(),
       limit_config: LimitConfigVo::from_config(&pool.get_limit_config()),
       term_config: TermConfigVo::from_config(&pool.get_term_config()),
     }
