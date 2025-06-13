@@ -26,6 +26,10 @@ pub struct ClientStakingPoolVo {
   pub my_staked_amount: E8S,
   /// Remainable deposit amount for the current user
   pub my_remain_stake_amount: E8S,
+  /// The amount of funds occupied by the NNS neuron
+  pub nns_neuron_occupies_funds: E8S,
+  /// The amount of funds occupied by the jackpot
+  pub jackpot_occupies_funds: E8S,
   /// The total reward amount that the user has received
   pub my_rewards: E8S,
   /// Remaining lock-up: xxx days （weighted average days： （Amount1*Lock date1+Amount2*Lock date2）/（Amount1+Amount2）
@@ -95,6 +99,8 @@ impl ClientStakingPoolVo {
       pool_remain_amount: pool_size - pool_staked_amount,
       my_staked_amount: my_staked_amount,
       my_remain_stake_amount: pool_max_stake_amount_per_user - my_staked_amount,
+      nns_neuron_occupies_funds: pool.get_nns_neuron_occupies_funds(),
+      jackpot_occupies_funds: pool.get_jackpot_occupies_funds(),
       my_rewards,
       my_remaining_lockup,
       my_released_amount,
