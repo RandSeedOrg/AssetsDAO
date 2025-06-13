@@ -101,7 +101,7 @@ impl ClientStakingPoolVo {
       stakers: pool.get_stake_user_count(),
       status: pool.get_status().to_string(),
       crypto: pool.get_crypto().to_string(),
-      reward_configs: pool.get_reward_configs().iter().map(RewardConfigVo::from_config).collect(),
+      reward_configs: pool.get_reward_configs().iter().map(|config| config.into()).collect(),
       limit_config: LimitConfigVo::from_config(&pool.get_limit_config()),
       term_config: TermConfigVo::from_config(&pool.get_term_config()),
     }

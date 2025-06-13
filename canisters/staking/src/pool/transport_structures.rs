@@ -61,8 +61,8 @@ pub struct RewardConfigVo {
   pub max_stake_days: u16,
 }
 
-impl RewardConfigVo {
-  pub fn from_config(config: &RewardConfig) -> Self {
+impl From<&RewardConfig> for RewardConfigVo {
+  fn from(config: &RewardConfig) -> Self {
     Self {
       annualized_interest_rate: config.get_annualized_interest_rate(),
       daily_interest_rate: config.get_daily_interest_rate(),
@@ -153,7 +153,7 @@ impl StakingPoolVo {
       crypto: pool.get_crypto().to_string(),
       status: pool.get_status().to_string(),
       term_config: TermConfigVo::from_config(&pool.get_term_config()),
-      reward_configs: pool.get_reward_configs().iter().map(RewardConfigVo::from_config).collect(),
+      reward_configs: pool.get_reward_configs().iter().map(|config| config.into()).collect(),
       limit_config: LimitConfigVo::from_config(&pool.get_limit_config()),
       client_visible: pool.get_client_visible(),
       open_time: {

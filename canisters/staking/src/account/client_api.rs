@@ -84,7 +84,7 @@ async fn stake(dto: StakeDto) -> Result<StakingAccountVo, String> {
   staking_pool = staking_pool.validate_and_lock_size(staking_amount)?;
 
   // Create a staked account
-  let mut account = StakingAccount::from_stake_dto_and_pool(&dto, &staking_pool);
+  let mut account = StakingAccount::from_stake_dto_and_pool(&dto, &staking_pool)?;
 
   // Save the staked account to stable memory
   save_stake_account_to_stable_memory(&account)?;
