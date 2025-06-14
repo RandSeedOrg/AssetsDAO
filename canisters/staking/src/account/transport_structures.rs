@@ -42,7 +42,7 @@ pub struct StakingAccountVo {
   /// stake account status,refer to StakingAccountStatus enumerate
   pub status: String,
   /// Reward configuration for staked accounts
-  pub reward_configs: Vec<RewardConfigVo>,
+  pub reward_config: RewardConfigVo,
   /// When staking，On-chain transaction ID of the payment center
   pub stake_pay_center_onchain_tx_id: u64,
   /// Payment center transaction flow during stake ID
@@ -87,7 +87,7 @@ impl StakingAccountVo {
       penalty_amount: account.get_penalty_amount(),
       accumulated_rewards: account.get_accumulated_rewards(),
       status: account.get_status().to_string(),
-      reward_configs: account.get_reward_configs().iter().map(RewardConfigVo::from_config).collect(),
+      reward_config: (&account.get_reward_config()).into(),
       stake_pay_center_onchain_tx_id: account.get_stake_pay_center_onchain_tx_id(),
       stake_pay_center_tx_id: account.get_stake_pay_center_tx_id(),
       stake_account_to_pool_onchain_tx_id: account.get_stake_account_to_pool_onchain_tx_id(),

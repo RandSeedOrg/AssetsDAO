@@ -82,8 +82,6 @@ pub struct StakingAccount {
   pub status: Option<StakingAccountStatus>,
   /// Reward configuration for staked accounts
   pub reward_config: Option<RewardConfig>,
-  /// Multiple reward configurations for staked accounts
-  pub reward_configs: Option<Vec<RewardConfig>>,
   pub stake_pay_center_onchain_tx_id: Option<u64>,
   /// Payment center transaction flow during stake ID
   pub stake_pay_center_tx_id: Option<u64>,
@@ -120,7 +118,7 @@ pub struct StakingAccount {
 
 impl StakingAccount {
   /// Create a new staked account
-  pub fn from_stake_dto_and_pool(stake_dto: &StakeDto, pool: &StakingPool) -> Self {
+  pub fn from_stake_dto_and_pool(stake_dto: &StakeDto, pool: &StakingPool) -> Result<Self, String> {
     let StakeDto {
       pool_id,
       staking_amount,
@@ -132,8 +130,19 @@ impl StakingAccount {
 
     // Generate address on the stake pool chain
     let address = generate_staking_account_chain_address(id);
+    let reward_config = pool.get_reward_configs().iter().find_map(|config| {
+      if staking_days >= config.get_min_stake_days() && staking_days <= config.get_max_stake_days() {
+        Some(config.clone())
+      } else {
+        None
+      }
+    });
 
-    Self {
+    if reward_config.is_none() {
+      return Err("No reward config found for the given staking days".to_string());
+    }
+
+    Ok(Self {
       id: Some(id),
       pool_id: Some(pool_id),
       owner: Some(owner),
@@ -143,8 +152,7 @@ impl StakingAccount {
       penalty_amount: None,
       accumulated_rewards: None,
       status: Some(StakingAccountStatus::Created),
-      reward_config: None,
-      reward_configs: Some(pool.get_reward_configs().into_owned()),
+      reward_config: reward_config,
       stake_pay_center_onchain_tx_id: None,
       stake_pay_center_tx_id: None,
       stake_account_to_pool_onchain_tx_id: None,
@@ -163,7 +171,7 @@ impl StakingAccount {
       last_reward_time: None,
       meta: Some(MetaData::default()),
       recoverable_error: None,
-    }
+    })
   }
 
   pub fn update_reward(reward: &StakingReward, last_reward_time: TimestampNanos) -> Self {
@@ -363,14 +371,6 @@ impl StakingAccount {
 
   pub fn get_reward_config(&self) -> RewardConfig {
     self.reward_config.clone().unwrap_or_default()
-  }
-
-  pub fn get_reward_configs(&self) -> Cow<Vec<RewardConfig>> {
-    if let Some(configs) = &self.reward_configs {
-      return Cow::Borrowed(configs);
-    } else {
-      Cow::Owned(vec![self.get_reward_config()])
-    }
   }
 
   pub fn get_penalty_amount(&self) -> E8S {

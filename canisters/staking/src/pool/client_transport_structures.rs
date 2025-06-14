@@ -26,6 +26,10 @@ pub struct ClientStakingPoolVo {
   pub my_staked_amount: E8S,
   /// Remainable deposit amount for the current user
   pub my_remain_stake_amount: E8S,
+  /// The amount of funds occupied by the NNS neuron
+  pub nns_neuron_occupies_funds: E8S,
+  /// The amount of funds occupied by the jackpot
+  pub jackpot_occupies_funds: E8S,
   /// The total reward amount that the user has received
   pub my_rewards: E8S,
   /// Remaining lock-up: xxx days （weighted average days： （Amount1*Lock date1+Amount2*Lock date2）/（Amount1+Amount2）
@@ -95,13 +99,15 @@ impl ClientStakingPoolVo {
       pool_remain_amount: pool_size - pool_staked_amount,
       my_staked_amount: my_staked_amount,
       my_remain_stake_amount: pool_max_stake_amount_per_user - my_staked_amount,
+      nns_neuron_occupies_funds: pool.get_nns_neuron_occupies_funds(),
+      jackpot_occupies_funds: pool.get_jackpot_occupies_funds(),
       my_rewards,
       my_remaining_lockup,
       my_released_amount,
       stakers: pool.get_stake_user_count(),
       status: pool.get_status().to_string(),
       crypto: pool.get_crypto().to_string(),
-      reward_configs: pool.get_reward_configs().iter().map(RewardConfigVo::from_config).collect(),
+      reward_configs: pool.get_reward_configs().iter().map(|config| config.into()).collect(),
       limit_config: LimitConfigVo::from_config(&pool.get_limit_config()),
       term_config: TermConfigVo::from_config(&pool.get_term_config()),
     }

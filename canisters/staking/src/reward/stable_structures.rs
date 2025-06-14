@@ -69,17 +69,9 @@ impl StakingReward {
     // 2. Calculate the reward amount
     // 2.1 Get reward configuration for staked accounts
     // let reward_config = account.get_reward_config();
-    let reward_configs = account.get_reward_configs();
+    let reward_config = account.get_reward_config();
     // 2.2 Obtain the amount of the stake account
     let staked_amount = account.get_staked_amount();
-    // 2.3. Calculate the reward amount
-    // 2.3.1 Get staked days from the account
-    let staked_days = account.get_staked_days();
-    // 2.3.2 Get the reward configuration for the current staked days
-    let reward_config = reward_configs
-      .iter()
-      .find(|config| staked_days >= config.get_min_stake_days() && staked_days <= config.get_max_stake_days())
-      .unwrap_or_else(|| ic_cdk::trap(&format!("Account {} no reward config found for staked days: {}", account.get_id(), staked_days,)));
 
     let reward_amount = BigDecimal::from(staked_amount) * e8s_to_value(reward_config.get_daily_interest_rate());
 
