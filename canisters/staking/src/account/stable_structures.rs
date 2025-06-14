@@ -131,7 +131,7 @@ impl StakingAccount {
     // Generate address on the stake pool chain
     let address = generate_staking_account_chain_address(id);
     let reward_config = pool.get_reward_configs().iter().find_map(|config| {
-      if staking_days >= config.get_max_stake_days() && staking_days <= config.get_max_stake_days() {
+      if staking_days >= config.get_min_stake_days() && staking_days <= config.get_max_stake_days() {
         Some(config.clone())
       } else {
         None
