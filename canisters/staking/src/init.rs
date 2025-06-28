@@ -8,7 +8,7 @@ use crate::scheduled_tasks::{
 #[ic_cdk::init]
 fn init() {
   // Check stake rewards and stake maturity every minute
-  let interval = Duration::from_secs(60);
+  let interval = Duration::from_secs(60 * 60); // 1 hour
   ic_cdk::println!("Starting a periodic task with interval {interval:?}");
   ic_cdk_timers::set_timer_interval(interval, || {
     // Perform stake reward distribution tasks every minute
