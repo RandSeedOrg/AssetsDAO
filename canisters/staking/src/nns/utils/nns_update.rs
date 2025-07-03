@@ -1,8 +1,9 @@
+use candid::Principal;
 use nns_governance_api::{
   get_governance,
   nns_governance_api::{
-    By, ClaimOrRefresh, ClaimOrRefreshNeuronFromAccount, Command1, DisburseToNeuron, ManageNeuronCommandRequest, ManageNeuronRequest, NeuronId,
-    NeuronIdOrSubaccount,
+    AddHotKey, By, ClaimOrRefresh, ClaimOrRefreshNeuronFromAccount, Command1, Configure, DisburseToNeuron, IncreaseDissolveDelay,
+    ManageNeuronCommandRequest, ManageNeuronRequest, NeuronId, NeuronIdOrSubaccount, Operation, RemoveHotKey,
   },
 };
 use types::{staking::StakingPoolId, E8S};
@@ -93,6 +94,124 @@ pub async fn disburse_to_neuron(neuron_id: u64, amount: E8S, dissolve_delay_seco
     _ => {
       ic_cdk::println!("Failed to disburse to neuron: {:?}", neuron_id);
       Err("Failed to disburse to neuron".to_string())
+    }
+  }
+}
+
+pub async fn add_hot_key(neuron_id: u64, hotkey: String) -> Result<(), String> {
+  let governance = get_governance();
+
+  let (resp,) = governance
+    .manage_neuron(ManageNeuronRequest {
+      id: Some(NeuronId { id: neuron_id }),
+      command: Some(ManageNeuronCommandRequest::Configure(Configure {
+        operation: Some(Operation::AddHotKey(AddHotKey {
+          new_hot_key: Some(Principal::from_text(&hotkey).map_err(|e| {
+            ic_cdk::println!("Invalid hotkey principal: {}", e);
+            "Invalid hotkey principal".to_string()
+          })?),
+        })),
+      })),
+      neuron_id_or_subaccount: None,
+    })
+    .await
+    .map_err(|e| {
+      ic_cdk::println!("Failed to add hotkey to neuron0: {:?}", e);
+      "Failed to add hotkey to neuron".to_string()
+    })?;
+
+  if resp.command.is_none() {
+    ic_cdk::println!("Failed to add hotkey to neuron1: No command returned");
+    return Err("Failed to add hotkey to neuron: No command returned".to_string());
+  }
+
+  match resp.command.unwrap() {
+    Command1::Configure {} => {
+      ic_cdk::println!("Successfully added hotkey {} to neuron {}", hotkey, neuron_id);
+      Ok(())
+    }
+    Command1::Error(err) => {
+      ic_cdk::println!("Failed to add hotkey to neuron2: {:?}", err.clone());
+      Err(format!("Failed to add hotkey to neuron"))
+    }
+    _ => {
+      ic_cdk::println!("Failed to add hotkey to neuron3: {:?}", neuron_id);
+      Err("Failed to add hotkey to neuron".to_string())
+    }
+  }
+}
+
+pub async fn remove_hot_key(neuron_id: u64, hotkey: String) -> Result<(), String> {
+  let governance = get_governance();
+
+  let (resp,) = governance
+    .manage_neuron(ManageNeuronRequest {
+      id: Some(NeuronId { id: neuron_id }),
+      command: Some(ManageNeuronCommandRequest::Configure(Configure {
+        operation: Some(Operation::RemoveHotKey(RemoveHotKey {
+          hot_key_to_remove: Some(Principal::from_text(&hotkey).map_err(|e| {
+            ic_cdk::println!("Invalid hotkey principal: {}", e);
+            "Invalid hotkey principal".to_string()
+          })?),
+        })),
+      })),
+      neuron_id_or_subaccount: None,
+    })
+    .await
+    .map_err(|e| {
+      ic_cdk::println!("Failed to remove hotkey from neuron: {:?}", e);
+      "Failed to remove hotkey from neuron".to_string()
+    })?;
+
+  if resp.command.is_none() {
+    ic_cdk::println!("Failed to remove hotkey from neuron: No command returned");
+    return Err("Failed to remove hotkey from neuron: No command returned".to_string());
+  }
+
+  match resp.command.unwrap() {
+    Command1::Configure {} => {
+      ic_cdk::println!("Successfully removed hotkey {} from neuron {}", hotkey, neuron_id);
+      Ok(())
+    }
+    _ => {
+      ic_cdk::println!("Failed to remove hotkey from neuron: {:?}", neuron_id);
+      Err("Failed to remove hotkey from neuron".to_string())
+    }
+  }
+}
+
+pub async fn increase_dissolve_delay(neuron_id: u64, additional_delay_seconds: u32) -> Result<(), String> {
+  let governance = get_governance();
+
+  let (resp,) = governance
+    .manage_neuron(ManageNeuronRequest {
+      id: Some(NeuronId { id: neuron_id }),
+      command: Some(ManageNeuronCommandRequest::Configure(Configure {
+        operation: Some(Operation::IncreaseDissolveDelay(IncreaseDissolveDelay {
+          additional_dissolve_delay_seconds: additional_delay_seconds,
+        })),
+      })),
+      neuron_id_or_subaccount: None,
+    })
+    .await
+    .map_err(|e| {
+      ic_cdk::println!("Failed to increase dissolve delay for neuron: {:?}", e);
+      "Failed to increase dissolve delay for neuron".to_string()
+    })?;
+
+  if resp.command.is_none() {
+    ic_cdk::println!("Failed to increase dissolve delay for neuron: No command returned");
+    return Err("Failed to increase dissolve delay for neuron: No command returned".to_string());
+  }
+
+  match resp.command.unwrap() {
+    Command1::Configure {} => {
+      ic_cdk::println!("Successfully increased dissolve delay for neuron {}", neuron_id);
+      Ok(())
+    }
+    _ => {
+      ic_cdk::println!("Failed to increase dissolve delay for neuron: {:?}", neuron_id);
+      Err("Failed to increase dissolve delay for neuron".to_string())
     }
   }
 }
