@@ -9,7 +9,7 @@ use types::{
 };
 
 use crate::{
-  account::{crud_utils::delete_staking_account, stable_structures::StakingAccountRecoverableError},
+  account::{badge_utils::remove_staker_badge, crud_utils::delete_staking_account, stable_structures::StakingAccountRecoverableError},
   event_log::{
     stake_and_unstake_events::{save_dissolve_event, save_stake_event, save_unstake_event},
     staking_account_events::save_create_staking_account_event_log,
@@ -411,6 +411,15 @@ async fn early_unstake(account_id: StakingAccountId) -> Result<StakingAccountVo,
 
   // Save update the event log of staked account
   save_unstake_event(&pool, &updated_account);
+
+  if current_user_in_stake_accounts.len() == 1 {
+    let account_owner = account.get_owner();
+    ic_cdk::futures::spawn(async move {
+      remove_staker_badge(account_owner).await.unwrap_or_else(|e| {
+        ic_cdk::println!("Failed to remove staker badge: {:?}", e);
+      });
+    });
+  }
 
   Ok(StakingAccountVo::from_staking_account(&account))
 }
