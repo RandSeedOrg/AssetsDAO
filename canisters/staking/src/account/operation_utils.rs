@@ -1,6 +1,7 @@
 use types::staking::StakingAccountId;
 
 use crate::{
+  account::badge_utils::remove_staker_badge,
   event_log::{
     stake_and_unstake_events::save_unstake_event,
     transfer_events::{save_unstake_transfer_fail_event, save_unstake_transfer_ok_event, save_unstake_transfer_start_event},
@@ -83,6 +84,15 @@ pub async fn maturity_unstake(account_id: StakingAccountId) -> Result<StakingAcc
 
   // Save update the event log of staked account
   save_unstake_event(&pool, &updated_account);
+
+  if current_user_in_stake_accounts.len() == 1 {
+    let account_owner = account.get_owner();
+    ic_cdk::futures::spawn(async move {
+      remove_staker_badge(account_owner).await.unwrap_or_else(|e| {
+        ic_cdk::println!("Failed to remove staker badge: {:?}", e);
+      });
+    });
+  }
 
   Ok(StakingAccountVo::from_staking_account(&account))
 }

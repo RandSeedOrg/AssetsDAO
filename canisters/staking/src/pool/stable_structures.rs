@@ -11,10 +11,7 @@ use types::{
 };
 
 use crate::{
-  account::{
-    badge_utils::{add_staker_badge, remove_staker_badge},
-    stable_structures::StakingAccount,
-  },
+  account::{badge_utils::add_staker_badge, stable_structures::StakingAccount},
   on_chain::address::generate_staking_pool_chain_address,
   pool_transaction_record::utils::record_stake_transaction,
 };
@@ -309,13 +306,6 @@ impl StakingPool {
       if user_already_in_stake_accounts.len() == 1 {
         // If the user has only one staked account in the stake pool, then update the number of stakes in the stake pool
         pool.staked_user_count = Some(pool.get_staked_user_count() - 1);
-
-        let account_owner = account.get_owner();
-        ic_cdk::futures::spawn(async move {
-          remove_staker_badge(account_owner).await.unwrap_or_else(|e| {
-            ic_cdk::println!("Failed to remove staker badge: {:?}", e);
-          });
-        });
       }
 
       pool.update_meta();
