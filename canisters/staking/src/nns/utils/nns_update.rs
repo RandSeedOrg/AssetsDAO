@@ -215,3 +215,71 @@ pub async fn increase_dissolve_delay(neuron_id: u64, additional_delay_seconds: u
     }
   }
 }
+
+pub async fn start_dissolve(neuron_id: u64) -> Result<(), String> {
+  let governance = get_governance();
+
+  let (resp,) = governance
+    .manage_neuron(ManageNeuronRequest {
+      id: Some(NeuronId { id: neuron_id }),
+      command: Some(ManageNeuronCommandRequest::Configure(Configure {
+        operation: Some(Operation::StartDissolving {}),
+      })),
+      neuron_id_or_subaccount: None,
+    })
+    .await
+    .map_err(|e| {
+      ic_cdk::println!("Failed to start dissolve for neuron: {:?}", e);
+      "Failed to start dissolve for neuron".to_string()
+    })?;
+
+  if resp.command.is_none() {
+    ic_cdk::println!("Failed to start dissolve for neuron: No command returned");
+    return Err("Failed to start dissolve for neuron: No command returned".to_string());
+  }
+
+  match resp.command.unwrap() {
+    Command1::Configure {} => {
+      ic_cdk::println!("Successfully started dissolve for neuron {}", neuron_id);
+      Ok(())
+    }
+    _ => {
+      ic_cdk::println!("Failed to start dissolve for neuron: {:?}", neuron_id);
+      Err("Failed to start dissolve for neuron".to_string())
+    }
+  }
+}
+
+pub async fn stop_dissolve(neuron_id: u64) -> Result<(), String> {
+  let governance = get_governance();
+
+  let (resp,) = governance
+    .manage_neuron(ManageNeuronRequest {
+      id: Some(NeuronId { id: neuron_id }),
+      command: Some(ManageNeuronCommandRequest::Configure(Configure {
+        operation: Some(Operation::StopDissolving {}),
+      })),
+      neuron_id_or_subaccount: None,
+    })
+    .await
+    .map_err(|e| {
+      ic_cdk::println!("Failed to stop dissolve for neuron: {:?}", e);
+      "Failed to stop dissolve for neuron".to_string()
+    })?;
+
+  if resp.command.is_none() {
+    ic_cdk::println!("Failed to stop dissolve for neuron: No command returned");
+    return Err("Failed to stop dissolve for neuron: No command returned".to_string());
+  }
+
+  match resp.command.unwrap() {
+    Command1::Configure {} => {
+      ic_cdk::println!("Successfully stopped dissolve for neuron {}", neuron_id);
+      Ok(())
+    }
+    _ => {
+      ic_cdk::println!("Failed to stop dissolve for neuron: {:?}", neuron_id);
+      Err("Failed to stop dissolve for neuron".to_string())
+    }
+  }
+}
