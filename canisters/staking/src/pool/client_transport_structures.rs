@@ -1,6 +1,11 @@
+use bigdecimal::BigDecimal;
 use candid::CandidType;
 use serde::{Deserialize, Serialize};
-use types::{staking::StakingPoolId, E8S};
+use types::{
+  product::{e8s_to_value, value_to_e8s},
+  staking::StakingPoolId,
+  E8S,
+};
 
 use crate::account::{crud_utils::query_current_user_staking_accounts, stable_structures::StakingAccountStatus};
 
@@ -32,6 +37,8 @@ pub struct ClientStakingPoolVo {
   pub jackpot_occupies_funds: E8S,
   /// The total reward amount that the user has received
   pub my_rewards: E8S,
+  /// The APR of the user's rewards
+  pub my_rewards_apr: E8S,
   /// Remaining lock-up: xxx days （weighted average days： （Amount1*Lock date1+Amount2*Lock date2）/（Amount1+Amount2）
   pub my_remaining_lockup: String,
   /// Released Amount:  xxx ICP，illustrate：amount available for unstake （Money from staking address Transfer to user deposit account）
@@ -70,6 +77,19 @@ impl ClientStakingPoolVo {
 
     let my_rewards = current_user_accounts.iter().map(|account| account.get_accumulated_rewards()).sum::<E8S>();
 
+    let my_rewards_apr = if my_in_stake_accounts.len() > 0 {
+      let my_staked_factor = my_in_stake_accounts
+        .iter()
+        .map(|account| e8s_to_value(account.get_staked_amount()) * e8s_to_value(account.get_reward_config().get_annualized_interest_rate()))
+        .sum::<BigDecimal>();
+
+      let my_staked_icp = e8s_to_value(my_staked_amount);
+
+      value_to_e8s(my_staked_factor / my_staked_icp)
+    } else {
+      0
+    };
+
     let my_released_amount = current_user_accounts
       .iter()
       .filter(|account| match account.get_status() {
@@ -102,6 +122,7 @@ impl ClientStakingPoolVo {
       nns_neuron_occupies_funds: pool.get_nns_neuron_occupies_funds(),
       jackpot_occupies_funds: pool.get_jackpot_occupies_funds(),
       my_rewards,
+      my_rewards_apr,
       my_remaining_lockup,
       my_released_amount,
       stakers: pool.get_stake_user_count(),
