@@ -2,13 +2,13 @@ use candid::Principal;
 use nns_governance_api::{
   get_governance,
   nns_governance_api::{
-    AddHotKey, By, ClaimOrRefresh, ClaimOrRefreshNeuronFromAccount, Command1, Configure, DisburseToNeuron, IncreaseDissolveDelay,
-    ManageNeuronCommandRequest, ManageNeuronRequest, NeuronId, NeuronIdOrSubaccount, Operation, RemoveHotKey,
+    AccountIdentifier, AddHotKey, By, ClaimOrRefresh, ClaimOrRefreshNeuronFromAccount, Command1, Configure, Disburse, DisburseToNeuron,
+    IncreaseDissolveDelay, ManageNeuronCommandRequest, ManageNeuronRequest, NeuronId, NeuronIdOrSubaccount, Operation, RemoveHotKey,
   },
 };
 use types::{staking::StakingPoolId, E8S};
 
-use crate::on_chain::address::generate_staking_pool_neuron_account;
+use crate::{nns::utils::ledger_utils::query_transaction_by_block_height, on_chain::address::generate_staking_pool_neuron_account};
 
 pub async fn refresh_nns_neuron_by_pool(pool_id: StakingPoolId) -> Result<u64, String> {
   let governance = get_governance();
@@ -280,6 +280,54 @@ pub async fn stop_dissolve(neuron_id: u64) -> Result<(), String> {
     _ => {
       ic_cdk::println!("Failed to stop dissolve for neuron: {:?}", neuron_id);
       Err("Failed to stop dissolve for neuron".to_string())
+    }
+  }
+}
+
+// Distribute the staked ICP in the neuron back to the staking pool account.
+pub async fn nns_disburse(neuron_id: u64, pool_id: StakingPoolId) -> Result<(), String> {
+  let governance = get_governance();
+
+  let account_identifier = generate_staking_pool_neuron_account(pool_id);
+
+  let (resp,) = governance
+    .manage_neuron(ManageNeuronRequest {
+      id: Some(NeuronId { id: neuron_id }),
+      command: Some(ManageNeuronCommandRequest::Disburse(Disburse {
+        to_account: Some(AccountIdentifier {
+          hash: serde_bytes::ByteBuf::from(account_identifier.as_bytes()),
+        }),
+        amount: None,
+      })),
+      neuron_id_or_subaccount: None,
+    })
+    .await
+    .map_err(|e| {
+      ic_cdk::println!("Failed to disburse for neuron: {:?}", e);
+      "Failed to disburse for neuron".to_string()
+    })?;
+
+  if resp.command.is_none() {
+    ic_cdk::println!("Failed to disburse for neuron: No command returned");
+    return Err("Failed to disburse for neuron: No command returned".to_string());
+  }
+
+  match resp.command.unwrap() {
+    Command1::Disburse(disburse_resp) => {
+      let tx_id = disburse_resp.transfer_block_height;
+
+      ic_cdk::println!("Successfully disbursed for neuron {} with tx_id {}", neuron_id, tx_id);
+
+      let tx_info = query_transaction_by_block_height(tx_id).await?;
+
+      // Record the unstake transaction of the NNS neuron
+      crate::pool_transaction_record::utils::record_nns_unstake_transaction(pool_id, neuron_id, tx_info.amount, tx_id, tx_info.timestamp)?;
+
+      Ok(())
+    }
+    _ => {
+      ic_cdk::println!("Failed to disburse for neuron: {:?}", neuron_id);
+      Err("Failed to disburse for neuron".to_string())
     }
   }
 }

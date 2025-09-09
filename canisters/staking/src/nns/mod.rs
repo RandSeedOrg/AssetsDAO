@@ -250,3 +250,25 @@ async fn nns_stop_dissolve(pool_id: StakingPoolId) -> Result<(), String> {
     Err(format!("No NNS neuron found for pool ID: {}", pool_id))
   }
 }
+
+#[update]
+#[has_permission_result("staking::nns::update_nns_neuron")]
+async fn nns_unstake(pool_id: StakingPoolId) -> Result<(), String> {
+  let neuron = NNS_NEURON_MAP.with(|map| {
+    let map = map.borrow();
+    map.get(&pool_id).cloned()
+  });
+  if let Some(neuron) = neuron {
+    let neuron_id = neuron.id.map_or_else(
+      || {
+        ic_cdk::println!("Neuron ID is not set for pool ID: {}", pool_id);
+        Err("Neuron ID is not set".to_string())
+      },
+      |id| Ok(id),
+    )?;
+
+    utils::nns_update::nns_disburse(neuron_id.id, pool_id).await
+  } else {
+    Err(format!("No NNS neuron found for pool ID: {}", pool_id))
+  }
+}
