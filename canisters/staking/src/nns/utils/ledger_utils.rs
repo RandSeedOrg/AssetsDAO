@@ -135,6 +135,7 @@ pub async fn query_transaction_by_block_height(block_height: u64) -> Result<Tran
     length: 1,
   };
 
+  #[allow(deprecated)]
   let (response,): (Result<QueryBlocksResponse, GetBlocksError>,) = ic_cdk::call(ledger, "query_blocks", (args,))
     .await
     .map_err(|e| format!("Failed to call query_blocks: {:?}", e))?;
@@ -215,6 +216,7 @@ pub async fn query_transaction_range(start_block: u64, length: u64) -> Result<Ve
     length,
   };
 
+  #[allow(deprecated)]
   let (response,): (Result<QueryBlocksResponse, GetBlocksError>,) = ic_cdk::call(ledger, "query_blocks", (args,))
     .await
     .map_err(|e| format!("Failed to call query_blocks: {:?}", e))?;
