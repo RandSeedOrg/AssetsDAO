@@ -107,3 +107,13 @@ pub fn record_stake_to_neuron_transaction(execute_record: &NnsStakeExecuteRecord
 
   Ok(())
 }
+
+pub fn record_nns_unstake_transaction(
+  pool_id: StakingPoolId,
+  neuron_id: u64,
+  amount: u64,
+  block_index: BlockIndex,
+  distribute_time: TimestampNanos,
+) -> Result<PoolTransactionRecord, String> {
+  record_transaction(pool_id, &RecordType::NNSNeuronUnstake { neuron_id }, amount as i64, block_index, distribute_time)
+}
