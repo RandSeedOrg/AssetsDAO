@@ -1,235 +1,231 @@
-use candid::{CandidType, Deserialize, Principal};
+#![allow(deprecated, unused_variables)]
+use crate::nns::utils::ledger_canister::Service as LedgerService;
+use candid::{CandidType, Deserialize, Func, Principal};
+use ic_ledger_types::{ArchivedBlockRange, Block, BlockRange, GetBlocksArgs, GetBlocksResult, Operation}; // removed GetBlocksResult
 use types::E8S;
 
 const ICP_LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 
-#[derive(CandidType, Deserialize, Debug, Clone)]
-pub struct BlockIndex(pub u64);
-
-#[derive(CandidType, Deserialize, Debug, Clone)]
-pub struct Memo(pub u64);
-
-#[derive(CandidType, Deserialize, Debug, Clone)]
-pub struct TimeStamp {
-  pub timestamp_nanos: u64,
-}
-
-#[derive(CandidType, Deserialize, Debug, Clone)]
-pub struct AccountIdentifier {
-  pub hash: [u8; 32],
-}
-
-#[derive(CandidType, Deserialize, Debug, Clone)]
-pub struct Tokens {
-  pub e8s: u64,
-}
-
-#[derive(CandidType, Deserialize, Debug, Clone)]
-pub struct Transfer {
-  pub memo: Memo,
-  pub amount: Tokens,
-  pub fee: Tokens,
-  pub from: AccountIdentifier,
-  pub to: AccountIdentifier,
-  pub created_at_time: Option<TimeStamp>,
-}
-
-#[derive(CandidType, Deserialize, Debug, Clone)]
-pub struct Mint {
-  pub memo: Memo,
-  pub amount: Tokens,
-  pub to: AccountIdentifier,
-  pub created_at_time: Option<TimeStamp>,
-}
-
-#[derive(CandidType, Deserialize, Debug, Clone)]
-pub struct Burn {
-  pub memo: Memo,
-  pub amount: Tokens,
-  pub from: AccountIdentifier,
-  pub created_at_time: Option<TimeStamp>,
-}
-
-#[derive(CandidType, Deserialize, Debug, Clone)]
-pub enum Operation {
-  Mint(Mint),
-  Burn(Burn),
-  Transfer(Transfer),
-}
-
-#[derive(CandidType, Deserialize, Debug, Clone)]
-pub struct Transaction {
-  pub memo: Memo,
-  pub operation: Option<Operation>,
-  pub created_at_time: Option<TimeStamp>,
-}
-
-#[derive(CandidType, Deserialize, Debug, Clone)]
-pub struct Block {
-  pub parent_hash: Option<[u8; 32]>,
-  pub transaction: Transaction,
-  pub timestamp: TimeStamp,
-}
-
-#[derive(CandidType, Deserialize, Debug, Clone)]
-pub struct EncodedBlock {
-  pub block: Vec<u8>,
-}
-
-#[derive(CandidType, Deserialize, Debug, Clone)]
-pub enum GetBlocksError {
-  BadFirstBlockIndex {
-    requested_index: BlockIndex,
-    first_valid_index: BlockIndex,
-  },
-  Other {
-    error_code: u64,
-    error_message: String,
-  },
-}
-
-#[derive(CandidType, Deserialize, Debug, Clone)]
-pub struct GetBlocksArgs {
-  pub start: BlockIndex,
-  pub length: u64,
-}
-
-#[derive(CandidType, Deserialize, Debug, Clone)]
-pub struct QueryBlocksResponse {
-  pub chain_length: u64,
-  pub certificate: Option<Vec<u8>>,
-  pub blocks: Vec<EncodedBlock>,
-  pub first_block_index: BlockIndex,
-  pub archived_blocks: Vec<ArchivedBlocksRange>,
-}
-
+// 自定义归档块区间结构（callback 是一个 query func）
 #[derive(CandidType, Deserialize, Debug, Clone)]
 pub struct ArchivedBlocksRange {
-  pub start: BlockIndex,
+  pub start: u64,
   pub length: u64,
-  pub callback: QueryArchiveFn,
+  pub callback: Func,
 }
 
+// 归档 callback 返回结构（仅包含 blocks）
 #[derive(CandidType, Deserialize, Debug, Clone)]
-pub struct QueryArchiveFn {
-  pub canister_id: Principal,
-  pub method: String,
+pub struct ArchiveQueryBlocksResponse {
+  pub blocks: Vec<serde_bytes::ByteBuf>,
 }
 
+// 新增：交易信息输出结构（若已存在可忽略重复）
 #[derive(CandidType, Deserialize, Debug, Clone)]
 pub struct TransactionInfo {
   pub amount: E8S,
   pub fee: E8S,
-  pub from: Option<AccountIdentifier>,
-  pub to: Option<AccountIdentifier>,
+  pub from: Option<ic_ledger_types::AccountIdentifier>,
+  pub to: Option<ic_ledger_types::AccountIdentifier>,
   pub memo: u64,
   pub timestamp: u64,
   pub operation_type: String,
 }
 
 pub async fn query_transaction_by_block_height(block_height: u64) -> Result<TransactionInfo, String> {
-  let ledger = Principal::from_text(ICP_LEDGER_CANISTER_ID).map_err(|e| format!("Invalid ledger canister ID: {}", e))?;
-
+  let ledger_principal = Principal::from_text(ICP_LEDGER_CANISTER_ID).map_err(|e| format!("Invalid ledger canister ID: {}", e))?;
+  let service = LedgerService(ledger_principal);
   let args = GetBlocksArgs {
-    start: BlockIndex(block_height),
+    start: block_height,
     length: 1,
   };
-
-  #[allow(deprecated)]
-  let (response,): (Result<QueryBlocksResponse, GetBlocksError>,) = ic_cdk::call(ledger, "query_blocks", (args,))
+  ic_cdk::println!("[ledger_utils] Query start height={} length=1", block_height);
+  let (result,) = service
+    .query_blocks(args)
     .await
-    .map_err(|e| format!("Failed to call query_blocks: {:?}", e))?;
+    .map_err(|e| format!("Failed to call query_blocks: code={:?} msg={}", e.0, e.1))?;
 
-  let blocks_response = response.map_err(|e| format!("Query blocks error: {:?}", e))?;
+  let primary = result;
 
-  if blocks_response.blocks.is_empty() {
-    return Err("Block not found".to_string());
+  ic_cdk::println!(
+    "[ledger_utils] first_block_index={} chain_length={} returned_blocks={} archived_ranges={}",
+    primary.first_block_index,
+    primary.chain_length,
+    primary.blocks.len(),
+    primary.archived_blocks.len()
+  );
+
+  let chain_end_exclusive = primary.first_block_index + primary.chain_length;
+  if block_height >= chain_end_exclusive {
+    return Err(format!(
+      "Block height {} out of range (>= chain_end {}). first={}, length={}",
+      block_height, chain_end_exclusive, primary.first_block_index, primary.chain_length
+    ));
+  }
+  if block_height < primary.first_block_index {
+    ic_cdk::println!(
+      "[ledger_utils] height {} < first_block_index {}, searching archives",
+      block_height,
+      primary.first_block_index
+    );
+    if primary.archived_blocks.is_empty() {
+      return Err(format!("Requested archived block {} but no archived ranges returned", block_height));
+    }
+  }
+  if !primary.blocks.is_empty() {
+    let block = &primary.blocks[0];
+    return extract_transaction_info(block);
+  }
+  if let Some(info) = fetch_from_archives(block_height, &primary.archived_blocks).await? {
+    return Ok(info);
   }
 
-  let encoded_block = &blocks_response.blocks[0];
-  let block = decode_block(&encoded_block.block)?;
-
-  extract_transaction_info(&block)
+  if !primary.archived_blocks.is_empty() {
+    let mut covered = false;
+    for r in &primary.archived_blocks {
+      if block_height >= r.start && block_height < r.start + r.length {
+        covered = true;
+        break;
+      }
+    }
+    if !covered {
+      return Err(format!(
+        "Block {} not in any archived range (ranges count={})",
+        block_height,
+        primary.archived_blocks.len()
+      ));
+    }
+  }
+  Err(format!("Block {} not found in primary or archives", block_height))
 }
 
-fn decode_block(block_bytes: &[u8]) -> Result<Block, String> {
-  candid::decode_one(block_bytes).map_err(|e| format!("Failed to decode block: {}", e))
+async fn fetch_from_archives(block_height: u64, archived: &Vec<ArchivedBlockRange>) -> Result<Option<TransactionInfo>, String> {
+  for range in archived {
+    let start = range.start;
+    let end_exclusive = start + range.length;
+    if block_height >= start && block_height < end_exclusive {
+      let archive_args = GetBlocksArgs {
+        start: block_height,
+        length: 1,
+      };
+
+      let func: Func = range.callback.clone().into();
+
+      ic_cdk::println!(
+        "Block {} is archived. Calling archive canister={} method={}",
+        block_height,
+        func.principal,
+        func.method
+      );
+      let (archived_resp,): (GetBlocksResult,) = ic_cdk::call(func.principal, &func.method, (archive_args,))
+        .await
+        .map_err(|e| format!("Failed to call archive callback: code={:?} msg={}", e.0, e.1))?;
+
+      match archived_resp {
+        GetBlocksResult::Ok(BlockRange { blocks }) => {
+          if blocks.is_empty() {
+            return Err("Archived block not found".to_string());
+          }
+
+          return extract_transaction_info(&blocks[0]).map(Some);
+        }
+        GetBlocksResult::Err(err) => {
+          return Err(format!("Archive canister returned error: {:?}", err));
+        }
+      }
+    }
+  }
+  Ok(None)
 }
 
 fn extract_transaction_info(block: &Block) -> Result<TransactionInfo, String> {
-  let transaction = &block.transaction;
-
-  match &transaction.operation {
-    Some(Operation::Transfer(transfer)) => Ok(TransactionInfo {
-      amount: transfer.amount.e8s,
-      fee: transfer.fee.e8s,
-      from: Some(transfer.from.clone()),
-      to: Some(transfer.to.clone()),
-      memo: transaction.memo.0,
+  let txn = &block.transaction;
+  match &txn.operation {
+    Some(Operation::Transfer { from, to, amount, fee }) => Ok(TransactionInfo {
+      amount: amount.e8s(),
+      fee: fee.e8s(),
+      from: Some(*from),
+      to: Some(*to),
+      memo: txn.memo.0,
       timestamp: block.timestamp.timestamp_nanos,
       operation_type: "Transfer".to_string(),
     }),
-    Some(Operation::Mint(mint)) => Ok(TransactionInfo {
-      amount: mint.amount.e8s,
+    Some(Operation::Mint { amount, to }) => Ok(TransactionInfo {
+      amount: amount.e8s(),
       fee: 0,
       from: None,
-      to: Some(mint.to.clone()),
-      memo: transaction.memo.0,
+      to: Some(*to),
+      memo: txn.memo.0,
       timestamp: block.timestamp.timestamp_nanos,
       operation_type: "Mint".to_string(),
     }),
-    Some(Operation::Burn(burn)) => Ok(TransactionInfo {
-      amount: burn.amount.e8s,
+    Some(Operation::Burn { amount, from }) => Ok(TransactionInfo {
+      amount: amount.e8s(),
       fee: 0,
-      from: Some(burn.from.clone()),
+      from: Some(*from),
       to: None,
-      memo: transaction.memo.0,
+      memo: txn.memo.0,
       timestamp: block.timestamp.timestamp_nanos,
       operation_type: "Burn".to_string(),
+    }),
+    Some(Operation::Approve {
+      from,
+      spender,
+      expires_at,
+      fee,
+    }) => Ok(TransactionInfo {
+      amount: 0,
+      fee: fee.e8s(),
+      from: Some(*from),
+      to: Some(*spender),
+      memo: txn.memo.0,
+      timestamp: block.timestamp.timestamp_nanos,
+      operation_type: "Approve".to_string(),
+    }),
+    Some(Operation::TransferFrom {
+      from,
+      to,
+      spender,
+      amount,
+      fee,
+    }) => Ok(TransactionInfo {
+      amount: amount.e8s(),
+      fee: fee.e8s(),
+      from: Some(*from),
+      to: Some(*to),
+      memo: txn.memo.0,
+      timestamp: block.timestamp.timestamp_nanos,
+      operation_type: "TransferFrom".to_string(),
     }),
     None => Err("No operation found in transaction".to_string()),
   }
 }
 
 pub async fn query_transactions_by_block_heights(block_heights: Vec<u64>) -> Result<Vec<TransactionInfo>, String> {
-  let mut transactions = Vec::new();
-
-  for block_height in block_heights {
-    match query_transaction_by_block_height(block_height).await {
-      Ok(tx_info) => transactions.push(tx_info),
+  let mut out = Vec::with_capacity(block_heights.len());
+  for h in block_heights {
+    match query_transaction_by_block_height(h).await {
+      Ok(info) => out.push(info),
       Err(e) => {
-        ic_cdk::println!("Failed to query block {}: {}", block_height, e);
-
-        continue;
+        ic_cdk::println!("Skip block {}: {}", h, e);
       }
     }
   }
-
-  Ok(transactions)
+  Ok(out)
 }
 
 pub async fn query_transaction_range(start_block: u64, length: u64) -> Result<Vec<TransactionInfo>, String> {
-  let ledger = Principal::from_text(ICP_LEDGER_CANISTER_ID).map_err(|e| format!("Invalid ledger canister ID: {}", e))?;
-
-  let args = GetBlocksArgs {
-    start: BlockIndex(start_block),
-    length,
-  };
-
-  #[allow(deprecated)]
-  let (response,): (Result<QueryBlocksResponse, GetBlocksError>,) = ic_cdk::call(ledger, "query_blocks", (args,))
-    .await
-    .map_err(|e| format!("Failed to call query_blocks: {:?}", e))?;
-
-  let blocks_response = response.map_err(|e| format!("Query blocks error: {:?}", e))?;
-
-  let mut transactions = Vec::new();
-
-  for encoded_block in blocks_response.blocks {
-    let block = decode_block(&encoded_block.block)?;
-    let tx_info = extract_transaction_info(&block)?;
-    transactions.push(tx_info);
+  if length == 0 {
+    return Ok(vec![]);
   }
-
-  Ok(transactions)
+  let mut result = Vec::with_capacity(length as usize);
+  for h in start_block..start_block + length {
+    match query_transaction_by_block_height(h).await {
+      Ok(info) => result.push(info),
+      Err(e) => {
+        ic_cdk::println!("Skip block {} in range query: {}", h, e);
+      }
+    }
+  }
+  Ok(result)
 }
