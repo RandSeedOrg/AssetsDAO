@@ -34,3 +34,4 @@ system_configs_macro = { path = "../../libraries/system_configs_macro" }
 common_canisters = { path = "../../libraries/common_canisters" }
 parallel_guard_macro = { path = "../../libraries/parallel_guard_macro" }
 nns_governance_api = { path = "../../libraries/nns_governance_api" }
+identity_mapping_macro = { path = "../../libraries/identity_mapping_macro" }

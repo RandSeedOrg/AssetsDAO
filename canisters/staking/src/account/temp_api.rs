@@ -7,7 +7,7 @@ use super::{badge_utils::add_staker_badge, crud_utils::query_all_in_stake_accoun
 
 #[update(hidden = true)]
 async fn old_staker_badge_add() -> Result<(), String> {
-  if !is_controller(&msg_caller()) {
+  if !is_controller(&crate::identity_mapping::wl_caller()) {
     return Err("Only controller can call this api.".to_string());
   }
 

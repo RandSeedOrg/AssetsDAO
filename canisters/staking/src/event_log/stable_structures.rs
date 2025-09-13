@@ -40,7 +40,7 @@ impl EventLog {
 
     Self {
       id: Some(id),
-      principal: Some(ic_cdk::api::msg_caller()),
+      principal: Some(crate::identity_mapping::wl_caller()),
       event_type: Some(event_type),
       event_time: Some(ic_cdk::api::time()),
     }

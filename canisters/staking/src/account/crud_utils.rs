@@ -14,7 +14,7 @@ use super::{
 
 /// Query the list of staked accounts of the current session user in the stake pool
 pub fn query_current_user_staking_accounts(pool_id: StakingPoolId) -> Vec<StakingAccount> {
-  let user = ic_cdk::api::msg_caller();
+  let user = crate::identity_mapping::wl_caller();
 
   if user == Principal::anonymous() {
     return vec![]; // Anonymous user, no staking accounts

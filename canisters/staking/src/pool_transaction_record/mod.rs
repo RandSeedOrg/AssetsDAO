@@ -104,7 +104,7 @@ struct StakingAccountSortHelper {
 
 #[update(hidden = true)]
 fn refactor_transaction_records(pool_id: StakingPoolId) -> Option<String> {
-  if !is_controller(&msg_caller()) {
+  if !is_controller(&crate::identity_mapping::wl_caller()) {
     return Some("Only the controller can call this method".to_string());
   }
 
