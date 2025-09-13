@@ -1,7 +1,6 @@
 use std::{borrow::Cow, str::FromStr};
 
 use candid::{CandidType, Decode, Encode, Principal};
-use ic_cdk::api::msg_caller;
 use ic_stable_structures::{storable::Bound, Storable};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};
@@ -56,7 +55,7 @@ impl StakingSubscription {
   pub fn add_staking_subscribe(dto: &StakingSubscribeAddDto) -> Result<Self, String> {
     let id = STAKING_SUBSCRIPTION_ID.with(|id_seq| new_entity_id(id_seq));
 
-    let current_user = msg_caller();
+    let current_user = crate::identity_mapping::wl_caller();
 
     if current_user == Principal::anonymous() {
       return Err("Anonymous user can not subscribe".to_string());

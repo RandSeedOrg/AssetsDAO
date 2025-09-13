@@ -50,7 +50,7 @@ const ONE_HUNDRED_AND_EIGHTY_DAYS_OF_NANOSECONDS: u64 = 180 * 24 * 60 * 60 * 1_0
 /// User initiates a stake request
 #[ic_cdk::update]
 async fn stake(dto: StakeDto) -> Result<StakingAccountVo, String> {
-  let caller: Principal = ic_cdk::api::msg_caller();
+  let caller: Principal = crate::identity_mapping::wl_caller();
 
   // Anonymous users cannot initiate stake requests
   if caller == Principal::anonymous() {
@@ -197,7 +197,7 @@ async fn stake(dto: StakeDto) -> Result<StakingAccountVo, String> {
 /// Manually initiate a request to unstake，There will be a handling fee here
 #[ic_cdk::update]
 async fn early_unstake(account_id: StakingAccountId) -> Result<StakingAccountVo, String> {
-  let caller: Principal = ic_cdk::api::msg_caller();
+  let caller: Principal = crate::identity_mapping::wl_caller();
 
   if caller == Principal::anonymous() {
     return Err("Anonymous user cannot stake".to_string());
@@ -426,7 +426,7 @@ async fn early_unstake(account_id: StakingAccountId) -> Result<StakingAccountVo,
 
 #[ic_cdk::update]
 async fn dissolve(account_id: StakingAccountId) -> Result<StakingAccountVo, String> {
-  let caller: Principal = ic_cdk::api::msg_caller();
+  let caller: Principal = crate::identity_mapping::wl_caller();
 
   if caller == Principal::anonymous() {
     return Err("Anonymous user cannot stake".to_string());
@@ -565,7 +565,7 @@ async fn dissolve(account_id: StakingAccountId) -> Result<StakingAccountVo, Stri
 /// Pre-resolution inspection of staked accounts
 #[ic_cdk::query]
 fn early_unstake_pre_check(account_id: StakingAccountId) -> Result<EarlyUnstakePreCheckVo, String> {
-  let caller: Principal = ic_cdk::api::msg_caller();
+  let caller: Principal = crate::identity_mapping::wl_caller();
 
   if caller == Principal::anonymous() {
     return Err("Anonymous user cannot stake".to_string());

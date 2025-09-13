@@ -8,6 +8,7 @@
 extern crate system_configs_macro;
 system_configs_macro::system_configs!();
 parallel_guard_macro::parallel_guard!();
+identity_mapping_macro::identity_mapping!();
 
 use std::cell::RefCell;
 
