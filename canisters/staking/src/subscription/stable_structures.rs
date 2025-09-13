@@ -1,7 +1,6 @@
 use std::{borrow::Cow, str::FromStr};
 
 use candid::{CandidType, Decode, Encode, Principal};
-use ic_cdk::api::msg_caller;
 use ic_stable_structures::{storable::Bound, Storable};
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumString};

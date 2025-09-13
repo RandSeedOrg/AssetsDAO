@@ -1,9 +1,6 @@
 use std::cell::RefCell;
 
-use ic_cdk::{
-  api::{is_controller, msg_caller},
-  query, update,
-};
+use ic_cdk::{api::is_controller, query, update};
 use ic_stable_structures::{memory_manager::MemoryId, StableBTreeMap};
 use stable_structures::{PoolTransactionRecord, PoolTransactionRecords, RecordTypeIndexKey, RecordTypeKey};
 use transport_structures::PoolTransactionQueryParams;

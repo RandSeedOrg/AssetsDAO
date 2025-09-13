@@ -1,6 +1,5 @@
 use std::{cell::RefCell, str::FromStr};
 
-use ic_cdk::api::msg_caller;
 use ic_stable_structures::{memory_manager::MemoryId, Cell, StableBTreeMap};
 use stable_structures::{StakingSubscription, SubscribeScene};
 use system_configs_macro::has_permission;

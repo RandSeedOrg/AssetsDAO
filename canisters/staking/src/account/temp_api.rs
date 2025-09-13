@@ -1,7 +1,4 @@
-use ic_cdk::{
-  api::{is_controller, msg_caller},
-  update,
-};
+use ic_cdk::{api::is_controller, update};
 
 use super::{badge_utils::add_staker_badge, crud_utils::query_all_in_stake_accounts};
 
