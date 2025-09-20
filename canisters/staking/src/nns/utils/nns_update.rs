@@ -8,7 +8,10 @@ use nns_governance_api::{
 };
 use types::{staking::StakingPoolId, E8S};
 
-use crate::{nns::utils::ledger_utils::query_transaction_by_block_height, on_chain::address::generate_staking_pool_neuron_account};
+use crate::{
+  nns::utils::ledger_utils::query_transaction_by_block_height,
+  on_chain::address::{generate_staking_pool_account_identifier, generate_staking_pool_neuron_account},
+};
 
 pub async fn refresh_nns_neuron_by_pool(pool_id: StakingPoolId) -> Result<u64, String> {
   let governance = get_governance();
@@ -288,7 +291,7 @@ pub async fn stop_dissolve(neuron_id: u64) -> Result<(), String> {
 pub async fn nns_disburse(neuron_id: u64, pool_id: StakingPoolId) -> Result<(), String> {
   let governance = get_governance();
 
-  let account_identifier = generate_staking_pool_neuron_account(pool_id);
+  let account_identifier = generate_staking_pool_account_identifier(pool_id);
 
   let (resp,) = governance
     .manage_neuron(ManageNeuronRequest {
