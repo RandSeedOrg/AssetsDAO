@@ -1,4 +1,4 @@
-#![allow(deprecated, unused_variables)]
+#![allow(deprecated)]
 use crate::nns::utils::ledger_canister::Service as LedgerService;
 use candid::{CandidType, Deserialize, Func, Principal};
 use ic_ledger_types::{ArchivedBlockRange, Block, BlockRange, GetBlocksArgs, GetBlocksResult, Operation}; // removed GetBlocksResult
@@ -6,21 +6,6 @@ use types::E8S;
 
 const ICP_LEDGER_CANISTER_ID: &str = "ryjl3-tyaaa-aaaaa-aaaba-cai";
 
-// 自定义归档块区间结构（callback 是一个 query func）
-#[derive(CandidType, Deserialize, Debug, Clone)]
-pub struct ArchivedBlocksRange {
-  pub start: u64,
-  pub length: u64,
-  pub callback: Func,
-}
-
-// 归档 callback 返回结构（仅包含 blocks）
-#[derive(CandidType, Deserialize, Debug, Clone)]
-pub struct ArchiveQueryBlocksResponse {
-  pub blocks: Vec<serde_bytes::ByteBuf>,
-}
-
-// 新增：交易信息输出结构（若已存在可忽略重复）
 #[derive(CandidType, Deserialize, Debug, Clone)]
 pub struct TransactionInfo {
   pub amount: E8S,
@@ -168,12 +153,7 @@ fn extract_transaction_info(block: &Block) -> Result<TransactionInfo, String> {
       timestamp: block.timestamp.timestamp_nanos,
       operation_type: "Burn".to_string(),
     }),
-    Some(Operation::Approve {
-      from,
-      spender,
-      expires_at,
-      fee,
-    }) => Ok(TransactionInfo {
+    Some(Operation::Approve { from, spender, fee, .. }) => Ok(TransactionInfo {
       amount: 0,
       fee: fee.e8s(),
       from: Some(*from),
@@ -182,13 +162,7 @@ fn extract_transaction_info(block: &Block) -> Result<TransactionInfo, String> {
       timestamp: block.timestamp.timestamp_nanos,
       operation_type: "Approve".to_string(),
     }),
-    Some(Operation::TransferFrom {
-      from,
-      to,
-      spender,
-      amount,
-      fee,
-    }) => Ok(TransactionInfo {
+    Some(Operation::TransferFrom { from, to, amount, fee, .. }) => Ok(TransactionInfo {
       amount: amount.e8s(),
       fee: fee.e8s(),
       from: Some(*from),

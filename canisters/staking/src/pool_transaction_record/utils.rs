@@ -113,7 +113,16 @@ pub fn record_nns_unstake_transaction(
   neuron_id: u64,
   amount: u64,
   block_index: BlockIndex,
-  distribute_time: TimestampNanos,
-) -> Result<PoolTransactionRecord, String> {
-  record_transaction(pool_id, &RecordType::NNSNeuronUnstake { neuron_id }, amount as i64, block_index, distribute_time)
+  disburse_time: TimestampNanos,
+) -> Result<(), String> {
+  let nns_unstake_transaction = record_transaction(
+    pool_id,
+    &RecordType::NNSNeuronUnstake { neuron_id },
+    (amount + 10_000) as i64,
+    block_index,
+    disburse_time,
+  )?;
+
+  record_transaction(pool_id, &RecordType::Fee(nns_unstake_transaction.get_id()), -10_000, block_index, disburse_time)?;
+  Ok(())
 }
