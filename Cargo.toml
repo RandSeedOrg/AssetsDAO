@@ -6,6 +6,7 @@ members = [
   "libraries/common_canisters",
   "libraries/common_utils",
   "libraries/nns_governance_api",
+  "libraries/identity_mapping_macro",
 
   "canisters/assets_management",
   "canisters/staking",

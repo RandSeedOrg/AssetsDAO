@@ -1,6 +1,5 @@
 use std::{cell::RefCell, str::FromStr};
 
-use ic_cdk::api::msg_caller;
 use ic_stable_structures::{memory_manager::MemoryId, Cell, StableBTreeMap};
 use stable_structures::{StakingSubscription, SubscribeScene};
 use system_configs_macro::has_permission;
@@ -40,7 +39,7 @@ fn subscribe_notification(dto: StakingSubscribeAddDto) -> Option<String> {
 /// CCheck whether the current user has subscribed to a certain scenario notification
 #[ic_cdk::query]
 fn query_current_user_subscribed(scene: String) -> bool {
-  let current_user = msg_caller().to_text();
+  let current_user = crate::identity_mapping::wl_caller().to_text();
   let scene = SubscribeScene::from_str(&scene).unwrap_or(SubscribeScene::CanStake);
 
   STAKING_SUBSCRIPTION_MAP.with(|map| {

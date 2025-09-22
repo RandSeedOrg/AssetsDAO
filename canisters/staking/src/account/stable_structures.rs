@@ -126,7 +126,7 @@ impl StakingAccount {
     } = *stake_dto;
     // Generate a stake poolID
     let id = STAKING_ACCOUNT_ID.with(|id_seq| new_entity_id(id_seq));
-    let owner = ic_cdk::api::msg_caller().to_string();
+    let owner = crate::identity_mapping::wl_caller().to_string();
 
     // Generate address on the stake pool chain
     let address = generate_staking_account_chain_address(id);
