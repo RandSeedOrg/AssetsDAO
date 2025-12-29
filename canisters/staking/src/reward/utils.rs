@@ -1,5 +1,8 @@
 use candid::Principal;
-use common_canisters::pay_center::Result2;
+use common_canisters::{
+  account::{Crypto, Result25},
+  pay_center::Result2,
+};
 use types::{date::YearMonthDay, product::generate_staking_reward_payment_transaction_id, sys::ExteralCanisterLabels};
 
 use crate::{
@@ -90,18 +93,19 @@ pub async fn distribute_reward(account: &StakingAccount, day: YearMonthDay) -> R
   };
 
   // Initiate a stake reward issuance request from the payment center
-  let pay_center_canister_id = get_exteral_canister_id(ExteralCanisterLabels::PayCenter);
-  let pay_center = common_canisters::pay_center::Service(pay_center_canister_id);
+  let account_canister_id = get_exteral_canister_id(ExteralCanisterLabels::Account);
+  let account = common_canisters::account::Service(account_canister_id);
   let tx_id = generate_staking_reward_payment_transaction_id(reward.get_id()).unwrap();
-  let (response,) = match pay_center
+  let (response,) = match account
     .update_account_bonus(
       user_principal,
-      reward.get_reward_amount_float(),
+      reward.get_reward_amount() as i64,
+      Crypto::Icp,
       Some(tx_id),
       "Staking Rewards".to_string(),
       Some(reward.get_account_id()),
       Some(reward.get_id()),
-      Vec::new(),
+      None,
     )
     .await
   {
@@ -112,8 +116,8 @@ pub async fn distribute_reward(account: &StakingAccount, day: YearMonthDay) -> R
   };
 
   let pay_center_tx_id = match response {
-    Result2::Ok(tx_id) => tx_id,
-    Result2::Err(e) => {
+    Result25::Ok(tx_id) => tx_id,
+    Result25::Err(e) => {
       return Err(format!("Failed to update account bonus: {}", e));
     }
   };
