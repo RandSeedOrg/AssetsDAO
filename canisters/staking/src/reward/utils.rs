@@ -92,11 +92,11 @@ pub async fn distribute_reward(account: &StakingAccount, day: YearMonthDay) -> R
     }
   };
 
-  // Initiate a stake reward issuance request from the payment center
+  // Initiate a stake reward issuance request from the account canister
   let account_canister_id = get_exteral_canister_id(ExteralCanisterLabels::Account);
-  let account = common_canisters::account::Service(account_canister_id);
+  let account_canister = common_canisters::account::Service(account_canister_id);
   let tx_id = generate_staking_reward_payment_transaction_id(reward.get_id()).unwrap();
-  let (response,) = match account
+  let (response,) = match account_canister
     .update_account_bonus(
       user_principal,
       reward.get_reward_amount() as i64,
@@ -115,14 +115,14 @@ pub async fn distribute_reward(account: &StakingAccount, day: YearMonthDay) -> R
     }
   };
 
-  let pay_center_tx_id = match response {
+  let account_tx_id = match response {
     Result25::Ok(tx_id) => tx_id,
     Result25::Err(e) => {
       return Err(format!("Failed to update account bonus: {}", e));
     }
   };
 
-  let updated_reward = reward.received(pay_center_tx_id)?;
+  let updated_reward = reward.received(account_tx_id)?;
 
   save_reward_received_event(&updated_reward);
 
