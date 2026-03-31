@@ -1,8 +1,5 @@
 use candid::Principal;
-use common_canisters::{
-  account::{Crypto, Result25},
-  pay_center::Result2,
-};
+use common_canisters::account::{Crypto, Result25};
 use types::{date::YearMonthDay, product::generate_staking_reward_payment_transaction_id, sys::ExteralCanisterLabels};
 
 use crate::{
@@ -14,9 +11,9 @@ use crate::{
 };
 
 use super::{
+  STAKING_REWARD_MAP, STAKING_USER_ACCOUNT_REWARD_DATE_INDEX_MAP,
   stable_key::StakingAccountUserRewardDateIndexKey,
   stable_structures::{StakingReward, StakingRewardStatus},
-  STAKING_REWARD_MAP, STAKING_USER_ACCOUNT_REWARD_DATE_INDEX_MAP,
 };
 
 /// Update the reward distribution record of the current account on a certain day
