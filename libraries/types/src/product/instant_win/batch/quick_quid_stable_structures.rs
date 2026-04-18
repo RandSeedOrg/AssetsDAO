@@ -522,7 +522,7 @@ pub struct QuickQuidBatchExtra {
 }
 
 impl Storable for QuickQuidBatchExtra {
-  fn to_bytes(&self) -> Cow<[u8]> {
+  fn to_bytes(&self) -> Cow<'_, [u8]> {
     Cow::Owned(Encode!(self).unwrap())
   }
 

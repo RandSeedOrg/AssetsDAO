@@ -165,7 +165,7 @@ impl IntoIterator for DateRange {
 }
 
 impl Storable for YearMonthDay {
-  fn to_bytes(&self) -> Cow<[u8]> {
+  fn to_bytes(&self) -> Cow<'_, [u8]> {
     Cow::Owned(Encode!(self).unwrap())
   }
 
@@ -177,7 +177,7 @@ impl Storable for YearMonthDay {
 }
 
 impl Storable for DateRange {
-  fn to_bytes(&self) -> Cow<[u8]> {
+  fn to_bytes(&self) -> Cow<'_, [u8]> {
     Cow::Owned(Encode!(self).unwrap())
   }
 

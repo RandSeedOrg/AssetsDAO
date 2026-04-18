@@ -14,7 +14,7 @@ pub struct EntityIndex<T: CandidType> {
 }
 
 impl<T: CandidType + Serialize + for<'a> Deserialize<'a>> Storable for EntityIndex<T> {
-  fn to_bytes(&self) -> Cow<[u8]> {
+  fn to_bytes(&self) -> Cow<'_, [u8]> {
     Cow::Owned(Encode!(self).unwrap())
   }
 

@@ -14,7 +14,7 @@ pub struct BTreeSetEntityIndex<T: CandidType> {
 }
 
 impl<T: CandidType + Serialize + for<'a> Deserialize<'a>> Storable for BTreeSetEntityIndex<T> {
-  fn to_bytes(&self) -> Cow<[u8]> {
+  fn to_bytes(&self) -> Cow<'_, [u8]> {
     Cow::Owned(Encode!(self).unwrap())
   }
 
