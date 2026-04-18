@@ -27,7 +27,7 @@ pub struct Batch<T: CandidType> {
 }
 
 impl<T: CandidType + Serialize + for<'a> Deserialize<'a>> Storable for Batch<T> {
-  fn to_bytes(&self) -> Cow<[u8]> {
+  fn to_bytes(&self) -> Cow<'_, [u8]> {
     Cow::Owned(Encode!(self).unwrap())
   }
 
@@ -56,7 +56,7 @@ pub struct TicketSalesOrder<T: CandidType> {
 }
 
 impl<T: CandidType + Serialize + for<'a> Deserialize<'a>> Storable for TicketSalesOrder<T> {
-  fn to_bytes(&self) -> Cow<[u8]> {
+  fn to_bytes(&self) -> Cow<'_, [u8]> {
     Cow::Owned(Encode!(self).unwrap())
   }
 
@@ -85,7 +85,7 @@ pub struct RedemptionOrder<T: CandidType> {
 }
 
 impl<T: CandidType + Serialize + for<'a> Deserialize<'a>> Storable for RedemptionOrder<T> {
-  fn to_bytes(&self) -> Cow<[u8]> {
+  fn to_bytes(&self) -> Cow<'_, [u8]> {
     Cow::Owned(Encode!(self).unwrap())
   }
 
@@ -103,7 +103,7 @@ pub struct ProductBatchIndex {
 }
 
 impl Storable for ProductBatchIndex {
-  fn to_bytes(&self) -> Cow<[u8]> {
+  fn to_bytes(&self) -> Cow<'_, [u8]> {
     Cow::Owned(Encode!(self).unwrap())
   }
 
@@ -121,7 +121,7 @@ pub struct BatchData<T: CandidType> {
 }
 
 impl<T: CandidType + Serialize + for<'a> Deserialize<'a>> Storable for BatchData<T> {
-  fn to_bytes(&self) -> Cow<[u8]> {
+  fn to_bytes(&self) -> Cow<'_, [u8]> {
     Cow::Owned(Encode!(self).unwrap())
   }
 

@@ -113,7 +113,7 @@ impl NnsStakeExecuteRecord {
     self.pool_to_neuron_transfer_block_index.unwrap_or_default()
   }
 
-  pub fn get_meta(&self) -> Cow<MetaData> {
+  pub fn get_meta(&self) -> Cow<'_, MetaData> {
     match &self.meta {
       Some(meta) => Cow::Borrowed(meta),
       None => Cow::Owned(MetaData::init_create_scene()),
@@ -126,7 +126,7 @@ impl NnsStakeExecuteRecord {
 }
 
 impl Storable for NnsStakeExecuteRecord {
-  fn to_bytes(&self) -> Cow<[u8]> {
+  fn to_bytes(&self) -> Cow<'_, [u8]> {
     Cow::Owned(Encode!(self).unwrap())
   }
 

@@ -220,7 +220,7 @@ impl From<&RecordType> for RecordTypeKey {
 pub struct RecordTypeIndexKey(pub StakingPoolId, pub RecordTypeKey);
 
 impl Storable for PoolTransactionRecords {
-  fn to_bytes(&self) -> Cow<[u8]> {
+  fn to_bytes(&self) -> Cow<'_, [u8]> {
     Cow::Owned(Encode!(self).unwrap())
   }
 
@@ -232,7 +232,7 @@ impl Storable for PoolTransactionRecords {
 }
 
 impl Storable for RecordTypeIndexKey {
-  fn to_bytes(&self) -> Cow<[u8]> {
+  fn to_bytes(&self) -> Cow<'_, [u8]> {
     Cow::Owned(Encode!(self).unwrap())
   }
 

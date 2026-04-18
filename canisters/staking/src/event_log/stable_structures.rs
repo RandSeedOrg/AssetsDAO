@@ -129,7 +129,7 @@ pub enum EventType {
 }
 
 impl Storable for EventLog {
-  fn to_bytes(&self) -> Cow<[u8]> {
+  fn to_bytes(&self) -> Cow<'_, [u8]> {
     Cow::Owned(Encode!(self).unwrap())
   }
 
