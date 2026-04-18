@@ -24,7 +24,7 @@ pub struct Dict {
 }
 
 impl Storable for Dict {
-  fn to_bytes(&self) -> Cow<[u8]> {
+  fn to_bytes(&self) -> Cow<'_, [u8]> {
     Cow::Owned(Encode!(self).unwrap())
   }
 
@@ -120,7 +120,7 @@ pub struct DictItem {
 }
 
 impl Storable for DictItem {
-  fn to_bytes(&self) -> Cow<[u8]> {
+  fn to_bytes(&self) -> Cow<'_, [u8]> {
     Cow::Owned(Encode!(self).unwrap())
   }
 

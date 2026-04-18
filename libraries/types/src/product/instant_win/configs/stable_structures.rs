@@ -225,7 +225,7 @@ pub enum CloseMode {
 }
 
 impl Storable for InstantWinConfig {
-  fn to_bytes(&self) -> Cow<[u8]> {
+  fn to_bytes(&self) -> Cow<'_, [u8]> {
     Cow::Owned(Encode!(self).unwrap())
   }
 
@@ -237,7 +237,7 @@ impl Storable for InstantWinConfig {
 }
 
 impl Storable for Prize {
-  fn to_bytes(&self) -> Cow<[u8]> {
+  fn to_bytes(&self) -> Cow<'_, [u8]> {
     Cow::Owned(Encode!(self).unwrap())
   }
 

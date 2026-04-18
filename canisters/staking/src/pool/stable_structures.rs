@@ -485,7 +485,7 @@ impl StakingPool {
     self.reward_config.clone().unwrap_or_default()
   }
 
-  pub fn get_reward_configs(&self) -> Cow<Vec<RewardConfig>> {
+  pub fn get_reward_configs(&self) -> Cow<'_, Vec<RewardConfig>> {
     if let Some(configs) = &self.reward_configs {
       return Cow::Borrowed(configs);
     } else {
@@ -515,7 +515,7 @@ impl StakingPool {
 }
 
 impl Storable for StakingPool {
-  fn to_bytes(&self) -> Cow<[u8]> {
+  fn to_bytes(&self) -> Cow<'_, [u8]> {
     Cow::Owned(Encode!(self).unwrap())
   }
 
