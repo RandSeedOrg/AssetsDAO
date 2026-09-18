@@ -1,6 +1,5 @@
 use candid::Principal;
 use types::{
-  date::YearMonthDay,
   entities::{add_indexed_id, get_indexed_ids, remove_indexed_id},
   staking::{StakingAccountId, StakingPoolId},
 };
@@ -9,7 +8,7 @@ use crate::event_log::staking_account_events::save_delete_staking_account_event_
 
 use super::{
   stable_structures::{StakingAccount, StakingAccountStatus},
-  STAKING_ACCOUNT_MAP, STAKING_POOL_ACCOUNT_INDEX_MAP, STAKING_UNSTAKE_ON_DAY_ACCOUNT_INDEX_MAP, STAKING_USER_ACCOUNT_INDEX_MAP,
+  STAKING_ACCOUNT_MAP, STAKING_MATURITY_CURSOR_CELL, STAKING_POOL_ACCOUNT_INDEX_MAP, STAKING_USER_ACCOUNT_INDEX_MAP,
 };
 
 /// Query the list of staked accounts of the current session user in the stake pool
@@ -118,20 +117,36 @@ pub fn query_all_in_stake_accounts() -> Vec<StakingAccount> {
   })
 }
 
-/// Inquiry of staked accounts that have expired in the past two days
-pub fn query_unstake_near_two_days_account_ids() -> Vec<StakingAccountId> {
+/// Return a bounded, resumable batch of all accounts that have reached maturity.
+pub fn query_mature_account_ids(limit: usize) -> Vec<StakingAccountId> {
   let now = ic_cdk::api::time();
-  let today = YearMonthDay::from(now);
-  let yesterday = YearMonthDay::from(now - 24 * 60 * 60 * 1_000_000_000);
+  let cursor = STAKING_MATURITY_CURSOR_CELL.with(|cell| *cell.borrow().get());
+  let mut ids = STAKING_ACCOUNT_MAP.with(|map| {
+    map
+      .borrow()
+      .iter()
+      .filter(|(id, account)| *id > cursor && account.get_status() == StakingAccountStatus::InStake && account.get_stake_deadline() <= now)
+      .map(|(id, _)| id)
+      .take(limit)
+      .collect::<Vec<_>>()
+  });
 
-  STAKING_UNSTAKE_ON_DAY_ACCOUNT_INDEX_MAP.with(|map| {
-    // Splice index
-    let today_ids = get_indexed_ids(map, &today);
-    let yesterday_ids = get_indexed_ids(map, &yesterday);
-    let mut all_ids = today_ids;
-    all_ids.extend(yesterday_ids);
-    all_ids
-  })
+  // Start a new pass after reaching the end of the key space. The caller
+  // advances the cursor after each attempted account.
+  if ids.is_empty() && cursor != 0 {
+    STAKING_MATURITY_CURSOR_CELL.with(|cell| cell.borrow_mut().set(0).unwrap());
+    ids = STAKING_ACCOUNT_MAP.with(|map| {
+      map
+        .borrow()
+        .iter()
+        .filter(|(_, account)| account.get_status() == StakingAccountStatus::InStake && account.get_stake_deadline() <= now)
+        .map(|(id, _)| id)
+        .take(limit)
+        .collect::<Vec<_>>()
+    });
+  }
+
+  ids
 }
 
 pub fn delete_staking_account(account_id: &StakingAccountId) -> Result<(), String> {

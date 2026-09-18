@@ -14,6 +14,9 @@ pub const STAKING_POOL_ACCOUNT_INDEX: u8 = 23;
 pub const STAKING_UNSTAKE_ON_DAY_ACCOUNT_INDEX: u8 = 24;
 // A staked account index was generated that could recover errors
 pub const STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX: u8 = 25;
+// Cursor for bounded maturity processing. It lets the hourly task make
+// progress past a repeatedly failing account without skipping overdue rows.
+pub const STAKING_MATURITY_CURSOR: u8 = 26;
 
 /// Memory of stake reward ID definition
 pub const STAKING_REWARD: u8 = 30;

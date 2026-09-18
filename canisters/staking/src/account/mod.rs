@@ -14,8 +14,8 @@ use types::{
 
 use crate::{
   memory_ids::{
-    STAKING_ACCOUNT, STAKING_ACCOUNT_SEQ, STAKING_POOL_ACCOUNT_INDEX, STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX, STAKING_UNSTAKE_ON_DAY_ACCOUNT_INDEX,
-    STAKING_USER_ACCOUNT_INDEX,
+    STAKING_ACCOUNT, STAKING_ACCOUNT_SEQ, STAKING_MATURITY_CURSOR, STAKING_POOL_ACCOUNT_INDEX, STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX,
+    STAKING_UNSTAKE_ON_DAY_ACCOUNT_INDEX, STAKING_USER_ACCOUNT_INDEX,
   },
   MEMORY_MANAGER,
 };
@@ -29,6 +29,7 @@ pub mod recovery_errors;
 pub mod stable_structures;
 pub mod temp_api;
 pub mod transport_structures;
+pub mod unstake_calculation;
 
 thread_local! {
   /// stake account increasesIDGenerator
@@ -67,6 +68,11 @@ thread_local! {
     StableBTreeMap::init(
       MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(STAKING_UNSTAKE_ON_DAY_ACCOUNT_INDEX))),
     )
+  );
+
+  /// Last account ID examined by the bounded maturity task.
+  pub static STAKING_MATURITY_CURSOR_CELL: RefCell<Cell<EntityId, Memory>> = RefCell::new(
+    Cell::init(MEMORY_MANAGER.with(|m| m.borrow().get(MemoryId::new(STAKING_MATURITY_CURSOR))), 0_u64).unwrap()
   );
 }
 

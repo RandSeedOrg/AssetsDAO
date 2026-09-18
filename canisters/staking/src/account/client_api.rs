@@ -1,4 +1,3 @@
-use bigdecimal::{BigDecimal, ToPrimitive};
 use candid::Principal;
 use common_canisters::pay_center::{Result2, Result3};
 use types::{
@@ -41,11 +40,8 @@ use super::{
   },
   stable_structures::{StakingAccount, StakingAccountStatus},
   transport_structures::StakingAccountVo,
-  STAKING_UNSTAKE_ON_DAY_ACCOUNT_INDEX_MAP,
+  unstake_calculation, STAKING_UNSTAKE_ON_DAY_ACCOUNT_INDEX_MAP,
 };
-
-/// The nanosecond value of 180 days
-const ONE_HUNDRED_AND_EIGHTY_DAYS_OF_NANOSECONDS: u64 = 180 * 24 * 60 * 60 * 1_000_000_000;
 
 /// User initiates a stake request
 #[ic_cdk::update]
@@ -237,8 +233,6 @@ async fn early_unstake(account_id: StakingAccountId) -> Result<StakingAccountVo,
   };
 
   let now = ic_cdk::api::time();
-  let start_stake_time = account.get_stake_time();
-
   // Check if account can be unstake at this time
   if now < account.get_can_early_unstake_time() {
     return Err(format!(
@@ -247,29 +241,9 @@ async fn early_unstake(account_id: StakingAccountId) -> Result<StakingAccountVo,
     ));
   }
 
-  // Calculate the penalty amount
-  let mut penalty_amount = if now < start_stake_time + ONE_HUNDRED_AND_EIGHTY_DAYS_OF_NANOSECONDS {
-    // The stake time of the stake account is less than 180 days，deduct 80% staking reward
-    (BigDecimal::from(account.get_accumulated_rewards()) * BigDecimal::from(8) / BigDecimal::from(10)).to_u64()
-  } else {
-    // The stake time of the stake account is greater than 180 days，deduct 50% stake Reward
-    (BigDecimal::from(account.get_accumulated_rewards()) * BigDecimal::from(5) / BigDecimal::from(10)).to_u64()
-  }
-  .unwrap_or_default();
-
-  // If the penalty amount is less than or equal to 10,000(0.0001ICP), then set to 0
-  if penalty_amount <= 10_000 {
-    penalty_amount = 0;
-  }
-
-  // Calculate the actual redemption amount
-  let released_amount = if penalty_amount >= account.get_staked_amount() {
-    // Penalty fees great than the amount of the principal，the actual redemption amount is 0
-    0
-  } else {
-    // Actual redemption amount = The amount of the stake - Penalty fees
-    account.get_staked_amount() - penalty_amount
-  };
+  let amounts = unstake_calculation::calculate_unstake_amounts(&account, now);
+  let penalty_amount = amounts.penalty_amount;
+  let released_amount = amounts.released_amount;
 
   // Unstake：Transfer Event Log from stake Pool to stake Account-start
   save_unstake_transfer_start_event(account.get_id(), account.get_pool_id());
@@ -587,8 +561,6 @@ fn early_unstake_pre_check(account_id: StakingAccountId) -> Result<EarlyUnstakeP
   }
 
   let now = ic_cdk::api::time();
-  let start_stake_time = account.get_stake_time();
-
   // Check if account can be unstake at this time
   if now < account.get_can_early_unstake_time() {
     return Err(format!(
@@ -597,29 +569,9 @@ fn early_unstake_pre_check(account_id: StakingAccountId) -> Result<EarlyUnstakeP
     ));
   }
 
-  // Calculate the penalty amount
-  let mut penalty_amount = if now < start_stake_time + ONE_HUNDRED_AND_EIGHTY_DAYS_OF_NANOSECONDS {
-    // The stake time of the stake account is less than 180 days，deduct 80% stake Reward
-    (BigDecimal::from(account.get_accumulated_rewards()) * BigDecimal::from(8) / BigDecimal::from(10)).to_u64()
-  } else {
-    // The stake time of the stake account is greater than 180 days，deduct 50% stake Reward
-    (BigDecimal::from(account.get_accumulated_rewards()) * BigDecimal::from(5) / BigDecimal::from(10)).to_u64()
-  }
-  .unwrap_or_default();
-
-  // If the penalty amount is less than or equal to 10,000(0.0001ICP), then set to 0
-  if penalty_amount <= 10_000 {
-    penalty_amount = 0;
-  }
-
-  // Calculate the actual redemption amount
-  let released_amount = if penalty_amount >= account.get_staked_amount() {
-    // Penalty fees great than the amount of the stake principal，The actual unstake amount is 0
-    0
-  } else {
-    // Actual redemption amount = The amount of the stake - Penalty fees
-    account.get_staked_amount() - penalty_amount
-  };
+  let amounts = unstake_calculation::calculate_unstake_amounts(&account, now);
+  let penalty_amount = amounts.penalty_amount;
+  let released_amount = amounts.released_amount;
 
   Ok(EarlyUnstakePreCheckVo {
     pool_id: account.get_pool_id(),
