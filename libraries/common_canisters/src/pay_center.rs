@@ -55,6 +55,9 @@ impl Service {
   pub async fn receive_early_unstake_penalty(&self, arg0: Principal, arg1: u64, arg2: u64, arg3: u64, arg4: u64) -> Result<(Result2,)> {
     ic_cdk::call(self.0, "receive_early_unstake_penalty", (arg0, arg1, arg2, arg3, arg4)).await
   }
+  pub async fn receive_staking_wind_down_residual(&self, arg0: u64, arg1: u64, arg2: u64, arg3: String) -> Result<(Result2,)> {
+    ic_cdk::call(self.0, "receive_staking_wind_down_residual", (arg0, arg1, arg2, arg3)).await
+  }
   pub async fn stake(&self, arg0: Principal, arg1: u64, arg2: String, arg3: u64, arg4: u64) -> Result<(Result3,)> {
     ic_cdk::call(self.0, "stake", (arg0, arg1, arg2, arg3, arg4)).await
   }

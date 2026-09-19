@@ -5,7 +5,7 @@ use types::{date::YearMonthDay, product::generate_staking_reward_payment_transac
 use crate::{
   account::stable_structures::StakingAccount,
   event_log::stake_reward_events::{save_reward_distribute_event, save_reward_received_event},
-  guard_keys::get_distribute_reward_guard_key,
+  guard_keys::{get_distribute_reward_guard_key, get_staking_pool_wind_down_guard_key},
   parallel_guard::EntryGuard,
   system_configs::get_exteral_canister_id,
 };
@@ -45,6 +45,8 @@ pub fn get_account_distributed_the_day(account: &StakingAccount, day: YearMonthD
 
 /// Issuing stake rewards
 pub async fn distribute_reward(account: &StakingAccount, day: YearMonthDay) -> Result<StakingReward, String> {
+  let _pool_guard = EntryGuard::new(get_staking_pool_wind_down_guard_key(account.get_pool_id()))
+    .map_err(|_| format!("Staking pool {} is being prepared for wind-down", account.get_pool_id()))?;
   // Reentry protection
   let _entry_guard = EntryGuard::new(get_distribute_reward_guard_key(account.get_id()))
     .map_err(|_| format!("Failed to acquire distribute reward entry guard for account {}", account.get_id()))?;

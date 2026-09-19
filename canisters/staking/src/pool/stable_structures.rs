@@ -459,6 +459,34 @@ impl StakingPool {
     None
   }
 
+  /// Mark a pool closed for an administrative wind-down. This intentionally
+  /// bypasses the normal Open -> Closed UI transition only for a pool that is
+  /// already active or closed; terminal pools cannot be winded down.
+  pub fn close_for_wind_down(&mut self) -> Result<(), String> {
+    match self.get_status() {
+      StakingPoolStatus::Open => {
+        if let Some(error) = self.set_status(StakingPoolStatus::Closed) {
+          return Err(error);
+        }
+      }
+      StakingPoolStatus::Closed => {}
+      StakingPoolStatus::Finished => return Err("Cannot wind down a Finished pool".to_string()),
+      StakingPoolStatus::Created | StakingPoolStatus::Cancelled => return Err("Only Open or Closed pools can be winded down".to_string()),
+    }
+
+    if self.get_client_visible() {
+      if let Some(error) = self.set_client_visible(false) {
+        return Err(error);
+      }
+    }
+    Ok(())
+  }
+
+  pub fn clear_nns_neuron_occupies_funds(&mut self) {
+    self.nns_neuron_occupies_funds = Some(0);
+    self.meta = Some(self.get_meta().update());
+  }
+
   pub fn get_term_config(&self) -> TermConfig {
     self.term_config.clone().unwrap_or_default()
   }

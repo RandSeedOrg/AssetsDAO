@@ -31,6 +31,9 @@ pub async fn distribute_staking_rewards() {
   let all_in_stake_accounts = query_all_in_stake_accounts();
 
   for in_stake_account in all_in_stake_accounts {
+    if crate::wind_down::is_pool_locked(in_stake_account.get_pool_id()) {
+      continue;
+    }
     match distribute_reward(&in_stake_account, current_date).await {
       Ok(_) => (),
       Err(e) => {

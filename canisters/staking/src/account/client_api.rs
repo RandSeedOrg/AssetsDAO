@@ -21,7 +21,7 @@ use crate::{
       save_unstake_penalty_transfer_start_event, save_unstake_transfer_fail_event, save_unstake_transfer_ok_event, save_unstake_transfer_start_event,
     },
   },
-  guard_keys::{get_dissolve_guard_key, get_stake_guard_key, get_unstake_guard_key},
+  guard_keys::{get_dissolve_guard_key, get_stake_guard_key, get_staking_pool_wind_down_guard_key, get_unstake_guard_key},
   on_chain::transfer::{
     transfer_from_staking_account_to_pay_center, transfer_from_staking_account_to_staking_pool, transfer_from_staking_pool_to_pay_center,
     transfer_from_staking_pool_to_staking_account,
@@ -66,6 +66,8 @@ async fn stake(dto: StakeDto) -> Result<StakingAccountVo, String> {
   } = dto;
 
   let mut staking_pool = query_staking_pool_by_id(pool_id)?;
+  let _pool_guard =
+    EntryGuard::new(get_staking_pool_wind_down_guard_key(pool_id)).map_err(|_| "The staking pool is being prepared for wind-down".to_string())?;
 
   // check term of the staking pool
   let term_config = staking_pool.get_term_config();
@@ -213,6 +215,12 @@ async fn early_unstake(account_id: StakingAccountId) -> Result<StakingAccountVo,
   // Verify the owner of the staked account
   if account.get_owner() != user_id {
     return Err("The caller is not the owner of the staking account".to_string());
+  }
+
+  let _pool_guard = EntryGuard::new(get_staking_pool_wind_down_guard_key(account.get_pool_id()))
+    .map_err(|_| "The staking pool is being prepared for wind-down".to_string())?;
+  if crate::wind_down::is_pool_locked(account.get_pool_id()) {
+    return Err("The staking pool is being wound down".to_string());
   }
 
   // Verify the status of the staked account
@@ -420,6 +428,12 @@ async fn dissolve(account_id: StakingAccountId) -> Result<StakingAccountVo, Stri
   // Verify the owner of the staked account
   if account.get_owner() != user_id {
     return Err("The caller is not the owner of the staking account".to_string());
+  }
+
+  let _pool_guard = EntryGuard::new(get_staking_pool_wind_down_guard_key(account.get_pool_id()))
+    .map_err(|_| "The staking pool is being prepared for wind-down".to_string())?;
+  if crate::wind_down::is_pool_locked(account.get_pool_id()) {
+    return Err("The staking pool is being wound down".to_string());
   }
 
   // Verify the status of the staked account，Only accounts that have been de-staked can be dissolved

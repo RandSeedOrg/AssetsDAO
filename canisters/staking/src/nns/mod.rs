@@ -7,7 +7,10 @@ use stable_structures::NnsStakeExecuteRecord;
 use system_configs_macro::has_permission_result;
 use transport_structures::NnsStakeExecuteRecordVo;
 use types::{assets_management::ProposalId, stable_structures::Memory, staking::StakingPoolId, E8S};
-use utils::{nns_query::sync_nns_neuron, nns_update::refresh_nns_neuron_by_pool};
+use utils::{
+  nns_query::{get_neuron_id_by_pool_id, sync_nns_neuron},
+  nns_update::refresh_nns_neuron_by_pool,
+};
 
 use crate::{
   guard_keys::get_stake_to_nns_guard_key,
@@ -136,6 +139,29 @@ pub fn get_nns_neuron_by_pool_id(pool_id: StakingPoolId) -> Option<Neuron> {
 pub async fn sync_nns_neuron_by_pool_id(pool_id: StakingPoolId) -> Result<(), String> {
   refresh_nns_neuron_by_pool(pool_id).await?;
   sync_nns_neuron(pool_id).await
+}
+
+/// Disburse a pool's NNS neuron during a pool-scoped wind-down. The public
+/// admin endpoint has a separate permission; this helper is called only after
+/// the wind-down permission has been checked by the caller.
+pub async fn disburse_for_wind_down(pool_id: StakingPoolId) -> Result<(), String> {
+  if get_neuron_id_by_pool_id(pool_id).is_some() {
+    refresh_nns_neuron_by_pool(pool_id).await?;
+    sync_nns_neuron(pool_id).await?;
+  }
+  let neuron = NNS_NEURON_MAP.with(|map| map.borrow().get(&pool_id).cloned());
+  let neuron_id = neuron
+    .and_then(|value| value.id.map(|id| id.id))
+    .ok_or_else(|| format!("No NNS neuron found for pool {}", pool_id))?;
+
+  utils::nns_update::nns_disburse(neuron_id, pool_id).await?;
+
+  let mut pool = query_staking_pool_by_id(pool_id)?;
+  pool.clear_nns_neuron_occupies_funds();
+  crate::pool::STAKING_POOL_MAP.with(|map| {
+    map.borrow_mut().insert(pool_id, pool);
+  });
+  Ok(())
 }
 
 #[update]

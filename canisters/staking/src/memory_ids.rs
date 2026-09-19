@@ -17,6 +17,9 @@ pub const STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX: u8 = 25;
 // Cursor for bounded maturity processing. It lets the hourly task make
 // progress past a repeatedly failing account without skipping overdue rows.
 pub const STAKING_MATURITY_CURSOR: u8 = 26;
+// Per-pool wind-down jobs and account receipts.
+pub const STAKING_WIND_DOWN_JOB: u8 = 27;
+pub const STAKING_WIND_DOWN_ACCOUNT_RECEIPT: u8 = 28;
 
 /// Memory of stake reward ID definition
 pub const STAKING_REWARD: u8 = 30;

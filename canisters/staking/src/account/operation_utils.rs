@@ -6,7 +6,7 @@ use crate::{
     stake_and_unstake_events::save_unstake_event,
     transfer_events::{save_unstake_transfer_fail_event, save_unstake_transfer_ok_event, save_unstake_transfer_start_event},
   },
-  guard_keys::get_unstake_guard_key,
+  guard_keys::{get_staking_pool_wind_down_guard_key, get_unstake_guard_key},
   on_chain::transfer::transfer_from_staking_pool_to_staking_account,
   parallel_guard::EntryGuard,
   pool::stable_structures::StakingPool,
@@ -28,6 +28,12 @@ pub async fn maturity_unstake(account_id: StakingAccountId) -> Result<StakingAcc
 
   // Query staked account
   let account = StakingAccount::query_by_id(account_id)?;
+  let _pool_guard = EntryGuard::new(get_staking_pool_wind_down_guard_key(account.get_pool_id()))
+    .map_err(|_| "The staking pool is being prepared for wind-down".to_string())?;
+
+  if crate::wind_down::is_pool_locked(account.get_pool_id()) {
+    return Err("The staking pool is being wound down".to_string());
+  }
 
   // Verify the status of the staked account
   if account.get_status() != StakingAccountStatus::InStake {

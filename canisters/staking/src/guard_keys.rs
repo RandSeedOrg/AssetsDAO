@@ -38,3 +38,7 @@ pub fn get_recovery_unstake_penalty_guard_key(account_id: StakingAccountId) -> S
 pub fn get_stake_to_nns_guard_key(proposal_id: ProposalId) -> String {
   format!("stake_to_nns_guard_{}", proposal_id)
 }
+
+pub fn get_staking_pool_wind_down_guard_key(pool_id: u64) -> String {
+  format!("staking_pool_wind_down_guard_{}", pool_id)
+}

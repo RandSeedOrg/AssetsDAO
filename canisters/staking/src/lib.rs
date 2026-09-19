@@ -20,6 +20,7 @@ pub mod pool_transaction_record;
 pub mod reward;
 pub mod scheduled_tasks;
 pub mod subscription;
+pub mod wind_down;
 
 thread_local! {
   static MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> = RefCell::new(MemoryManager::init(DefaultMemoryImpl::default()));
@@ -58,5 +59,6 @@ use types::assets_management::ProposalId;
 use types::pagination::PageRequest;
 use types::pagination::PageResponse;
 use types::E8S;
+use wind_down::{WindDownBatchResult, WindDownExpected, WindDownFinalReport, WindDownPlan, WindDownPreview, WindDownStatus};
 
 ic_cdk::export_candid!();

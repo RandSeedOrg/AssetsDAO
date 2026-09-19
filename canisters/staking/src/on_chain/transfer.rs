@@ -100,6 +100,24 @@ pub async fn transfer_from_staking_pool_to_pay_center(pool_id: StakingPoolId, am
   transfer(&from_account, &to_account, amount - 10_000, Memo(TRANSFER_SCENE_UNSTAKE_PENALTY)).await
 }
 
+/// Transfer a gross pool amount to pay_center. The ledger fee is included in
+/// `gross_amount`; the returned amount is the net amount received by pay_center.
+pub async fn transfer_from_staking_pool_to_pay_center_gross(pool_id: StakingPoolId, gross_amount: E8S) -> Result<(BlockIndex, E8S), String> {
+  let net_amount = gross_amount
+    .checked_sub(10_000)
+    .ok_or_else(|| "Pool residual is smaller than the ICP fee".to_string())?;
+  let from_account = generate_staking_pool_subaccount(pool_id);
+  let pay_center_canister_id = get_exteral_canister_id(ExteralCanisterLabels::PayCenter);
+  let pay_center = common_canisters::pay_center::Service(pay_center_canister_id);
+  let (pay_center_address,) = pay_center
+    .get_address()
+    .await
+    .map_err(|e| format!("Failed to obtain payment center address: {:?}", e))?;
+  let to_account = parse_account_id(&pay_center_address)?;
+  let block_index = transfer(&from_account, &to_account, net_amount, Memo(TRANSFER_SCENE_PAY_CENTER)).await?;
+  Ok((block_index, net_amount))
+}
+
 /// Transfer function
 /// Transfer money from one sub-account to another
 ///

@@ -6,6 +6,7 @@ use types::{
 
 use crate::event_log::staking_account_events::save_delete_staking_account_event_log;
 
+use super::STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX_MAP;
 use super::{
   stable_structures::{StakingAccount, StakingAccountStatus},
   STAKING_ACCOUNT_MAP, STAKING_MATURITY_CURSOR_CELL, STAKING_POOL_ACCOUNT_INDEX_MAP, STAKING_USER_ACCOUNT_INDEX_MAP,
@@ -115,6 +116,22 @@ pub fn query_all_in_stake_accounts() -> Vec<StakingAccount> {
       .filter(|account| (*account).get_status() == StakingAccountStatus::InStake)
       .collect::<Vec<StakingAccount>>()
   })
+}
+
+/// Query all accounts belonging to one staking pool in stable account-id order.
+pub fn query_staking_accounts_by_pool(pool_id: StakingPoolId) -> Vec<StakingAccount> {
+  let account_ids = STAKING_POOL_ACCOUNT_INDEX_MAP.with(|map| get_indexed_ids(map, &pool_id));
+
+  STAKING_ACCOUNT_MAP.with(|map| {
+    let map = map.borrow();
+    let mut accounts = account_ids.iter().filter_map(|account_id| map.get(account_id)).collect::<Vec<_>>();
+    accounts.sort_by_key(|account| account.get_id());
+    accounts
+  })
+}
+
+pub fn query_recoverable_account_ids(pool_id: StakingPoolId) -> Vec<StakingAccountId> {
+  STAKING_RECOVERABLE_ERROR_ACCOUNT_INDEX_MAP.with(|map| map.borrow().get(&pool_id).map(|index| index.get_entity_ids()).unwrap_or_default())
 }
 
 /// Return a bounded, resumable batch of all accounts that have reached maturity.

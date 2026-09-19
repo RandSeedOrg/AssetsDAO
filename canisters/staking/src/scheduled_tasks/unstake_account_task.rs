@@ -25,9 +25,15 @@ pub async fn unstake_accounts() {
   let will_unstake_account_ids = query_mature_account_ids(20);
 
   for account_id in will_unstake_account_ids {
+    let pool_id = crate::account::stable_structures::StakingAccount::query_by_id(account_id)
+      .map(|account| account.get_pool_id())
+      .unwrap_or_default();
     // Here you can add the logic of destaking accounts
     ic_cdk::println!("Unstaking account: {}", account_id);
     STAKING_MATURITY_CURSOR_CELL.with(|cell| cell.borrow_mut().set(account_id).unwrap());
+    if crate::wind_down::is_pool_locked(pool_id) {
+      continue;
+    }
     match maturity_unstake(account_id).await {
       Ok(_) => {
         ic_cdk::println!("Successfully unstaked account: {}", account_id);

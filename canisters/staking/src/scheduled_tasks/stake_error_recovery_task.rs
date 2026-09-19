@@ -22,6 +22,12 @@ pub async fn recover_staking_account_errors() {
   ic_cdk::println!("Recoverable error account IDs: {:?}", recoverable_error_account_ids);
 
   for account_id in recoverable_error_account_ids {
+    if crate::account::stable_structures::StakingAccount::query_by_id(account_id)
+      .map(|account| crate::wind_down::is_pool_locked(account.get_pool_id()))
+      .unwrap_or(false)
+    {
+      continue;
+    }
     // Try to restore error logs
     match recover_staking_account_error(account_id).await {
       Ok(_) => {
