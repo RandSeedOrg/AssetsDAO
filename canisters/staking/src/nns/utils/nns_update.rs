@@ -326,6 +326,13 @@ pub async fn nns_disburse(neuron_id: u64, pool_id: StakingPoolId) -> Result<(), 
       // Record the unstake transaction of the NNS neuron
       crate::pool_transaction_record::utils::record_nns_unstake_transaction(pool_id, neuron_id, tx_info.amount, tx_id, tx_info.timestamp)?;
 
+      crate::nns::NNS_STAKING_POOL_NEURON_ID_MAP.with(|map| {
+        map.borrow_mut().remove(&pool_id);
+      });
+      crate::nns::NNS_NEURON_MAP.with(|map| {
+        map.borrow_mut().remove(&pool_id);
+      });
+
       Ok(())
     }
     _ => {

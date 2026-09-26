@@ -15,6 +15,12 @@ pub async fn recover_staking_account_error(account_id: StakingAccountId) -> Resu
     map.get(&account_id).ok_or("Account not found")
   })?;
 
+  let _pool_guard = crate::parallel_guard::EntryGuard::new(crate::guard_keys::get_staking_pool_wind_down_guard_key(account.get_pool_id()))
+    .map_err(|_| "The staking pool has an operation in progress".to_string())?;
+  if crate::wind_down::is_pool_locked(account.get_pool_id()) {
+    return Err("The pool is locked for wind-down; resume its batch instead".to_string());
+  }
+
   if account.recoverable_error.is_none() {
     return Err("Account is not in recoverable error state".to_string());
   }

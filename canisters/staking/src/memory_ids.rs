@@ -20,6 +20,13 @@ pub const STAKING_MATURITY_CURSOR: u8 = 26;
 // Per-pool wind-down jobs and account receipts.
 pub const STAKING_WIND_DOWN_JOB: u8 = 27;
 pub const STAKING_WIND_DOWN_ACCOUNT_RECEIPT: u8 = 28;
+// Reserved legacy global scan state. No longer read or written; never reuse.
+pub const STAKING_WIND_DOWN_LEDGER_SCAN: u8 = 29;
+// Reserved legacy global scan target; never reuse.
+pub const STAKING_WIND_DOWN_LEDGER_SCAN_TARGET: u8 = 36;
+// Versioned per-account, per-stage recovery and per-pool audit state.
+pub const STAKING_WIND_DOWN_RECOVERY: u8 = 37;
+pub const STAKING_WIND_DOWN_AUDIT: u8 = 38;
 
 /// Memory of stake reward ID definition
 pub const STAKING_REWARD: u8 = 30;

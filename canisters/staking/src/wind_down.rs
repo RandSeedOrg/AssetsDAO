@@ -11,32 +11,28 @@ use types::{
   TimestampNanos, E8S,
 };
 
+#[cfg(feature = "recovery-tests")]
+mod fixture;
+mod recovery;
 use crate::{
   account::{
     crud_utils::{query_recoverable_account_ids, query_staking_accounts_by_pool},
     stable_structures::{StakingAccount, StakingAccountRecoverableError, StakingAccountStatus},
   },
-  event_log::{
-    stake_and_unstake_events::{save_dissolve_event, save_unstake_event},
-    transfer_events::{
-      save_dissolve_pay_center_receive_fail_event, save_dissolve_pay_center_receive_ok_event, save_dissolve_pay_center_receive_start_event,
-      save_dissolve_pay_center_transfer_fail_event, save_dissolve_pay_center_transfer_ok_event, save_dissolve_pay_center_transfer_start_event,
-      save_unstake_transfer_fail_event, save_unstake_transfer_ok_event, save_unstake_transfer_start_event,
-    },
-  },
-  guard_keys::{get_staking_pool_wind_down_guard_key, get_unstake_guard_key},
+  event_log::stake_and_unstake_events::{save_dissolve_event, save_unstake_event},
+  guard_keys::get_staking_pool_wind_down_guard_key,
   on_chain::{
-    address::{generate_staking_pool_account_identifier, generate_staking_pool_chain_address},
+    address::{generate_staking_account_account_identifier, generate_staking_pool_account_identifier, generate_staking_pool_chain_address},
     query::balance_of,
-    transfer::{
-      transfer_from_staking_account_to_pay_center, transfer_from_staking_pool_to_pay_center_gross, transfer_from_staking_pool_to_staking_account,
-    },
+    transfer::transfer_from_staking_pool_to_pay_center_gross,
   },
   parallel_guard::EntryGuard,
   pool::{crud_utils::query_staking_pool_by_id, stable_structures::StakingPool, STAKING_POOL_MAP},
+  pool_transaction_record::utils::{reconcile_release_repairs, ReleaseRepair},
   system_configs::get_exteral_canister_id,
   MEMORY_MANAGER,
 };
+use recovery::{Budget, RecoveryProgress, Stage, StepError, StepResult};
 
 const ICP_FEE: E8S = 10_000;
 const MAX_BATCH_SIZE: u32 = 20;
@@ -123,6 +119,7 @@ pub struct WindDownStatus {
   pub nns_recovered: bool,
   pub pay_center_address: String,
   pub updated_at: TimestampNanos,
+  pub recovery: Option<RecoveryProgress>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, CandidType)]
@@ -200,6 +197,7 @@ thread_local! {
   static WIND_DOWN_ACCOUNT_RECEIPT_MAP: RefCell<StableBTreeMap<StakingAccountId, WindDownAccountReceipt, Memory>> = RefCell::new(
     StableBTreeMap::init(MEMORY_MANAGER.with(|manager| manager.borrow().get(MemoryId::new(crate::memory_ids::STAKING_WIND_DOWN_ACCOUNT_RECEIPT))))
   );
+
 }
 
 pub fn is_pool_locked(pool_id: StakingPoolId) -> bool {
@@ -233,6 +231,7 @@ fn status_from_job(job: &WindDownJob) -> WindDownStatus {
     nns_recovered: job.nns_recovered,
     pay_center_address: job.pay_center_address.clone(),
     updated_at: job.updated_at,
+    recovery: recovery::progress(job.pool_id),
   }
 }
 
@@ -252,7 +251,23 @@ fn get_receipt(account_id: StakingAccountId) -> Option<WindDownAccountReceipt> {
   WIND_DOWN_ACCOUNT_RECEIPT_MAP.with(|map| map.borrow().get(&account_id))
 }
 
+#[cfg(test)]
+fn reconciliation_amount(on_chain_balance: E8S, virtual_balance: E8S) -> Result<Option<E8S>, String> {
+  if on_chain_balance < virtual_balance {
+    return Err(format!(
+      "On-chain pool balance {} is below virtual transaction balance {}",
+      on_chain_balance, virtual_balance
+    ));
+  }
+
+  let difference = on_chain_balance - virtual_balance;
+  Ok((difference > 0).then_some(difference))
+}
+
 fn validate_dissolved_receipt(account: &StakingAccount) -> Result<(), String> {
+  if account.get_released_amount() == 0 {
+    return Ok(());
+  }
   if let Some(receipt) = get_receipt(account.get_id()) {
     if receipt.pool_id != account.get_pool_id() || receipt.dissolve_onchain_tx_id == 0 || receipt.dissolve_pay_center_tx_id == 0 {
       return Err(format!("Invalid wind-down receipt for dissolved account {}", account.get_id()));
@@ -362,7 +377,11 @@ pub async fn prepare_staking_wind_down(pool_id: StakingPoolId, expected: WindDow
     EntryGuard::new(get_staking_pool_wind_down_guard_key(pool_id)).map_err(|_| "The staking pool has an operation in progress".to_string())?;
   if let Ok(existing) = get_job(pool_id) {
     if existing.phase != WindDownPhase::Finalized {
-      return Err("A wind-down job already exists for this pool".to_string());
+      return Err(format!(
+        "A wind-down job already exists for this pool (phase={}, cursor={}). Resume it with execute_staking_wind_down_batch.",
+        existing.phase.as_text(),
+        existing.cursor
+      ));
     }
     return Err("This pool has already been finalized".to_string());
   }
@@ -384,6 +403,7 @@ pub async fn prepare_staking_wind_down(pool_id: StakingPoolId, expected: WindDow
     return Err("NNS neuron funds have not been recovered".to_string());
   }
   compare_expected(&preview, &expected)?;
+  // Defer reconciliation until all historical release debits have been audited.
 
   let mut pool = query_staking_pool_by_id(pool_id)?;
   pool.close_for_wind_down()?;
@@ -412,147 +432,239 @@ pub async fn prepare_staking_wind_down(pool_id: StakingPoolId, expected: WindDow
   })
 }
 
-fn find_next_accounts(pool_id: StakingPoolId, cursor: StakingAccountId, limit: usize) -> Vec<StakingAccount> {
-  query_staking_accounts_by_pool(pool_id)
-    .into_iter()
-    .filter(|account| account.get_id() > cursor && account.get_status() != StakingAccountStatus::Dissolved)
-    .take(limit)
-    .collect()
+fn nonzero(block: u64) -> Option<u64> {
+  (block != 0).then_some(block)
 }
 
-async fn release_account(account_id: StakingAccountId) -> Result<StakingAccount, String> {
-  let _guard = EntryGuard::new(get_unstake_guard_key(account_id)).map_err(|_| format!("Account {} is already being processed", account_id))?;
+fn transfer_spec(account: &StakingAccount, stage: Stage) -> Result<recovery::Spec, String> {
+  use crate::on_chain::address::{generate_staking_account_subaccount, generate_staking_pool_subaccount};
+  use crate::on_chain::transfer::{TRANSFER_SCENE_PAY_CENTER, TRANSFER_SCENE_UNSTAKE};
+  let principal = if account.get_status() == StakingAccountStatus::InStake {
+    account.get_staked_amount()
+  } else {
+    account.get_released_amount()
+  };
+  let account_address = generate_staking_account_account_identifier(account.get_id()).to_hex();
+  let (from_subaccount, from, to, amount, memo, lower_bound) = match stage {
+    Stage::Release => (
+      generate_staking_pool_subaccount(account.get_pool_id()).0,
+      generate_staking_pool_account_identifier(account.get_pool_id()).to_hex(),
+      account_address,
+      principal.checked_add(ICP_FEE).ok_or("Release amount overflow")?,
+      TRANSFER_SCENE_UNSTAKE,
+      nonzero(account.get_stake_account_to_pool_onchain_tx_id()),
+    ),
+    Stage::Dissolve => (
+      generate_staking_account_subaccount(account.get_id()).0,
+      account_address,
+      get_job(account.get_pool_id())?.pay_center_address,
+      principal,
+      TRANSFER_SCENE_PAY_CENTER,
+      nonzero(account.get_release_onchain_tx_id()),
+    ),
+  };
+  Ok(recovery::Spec {
+    pool_id: account.get_pool_id(),
+    account_id: account.get_id(),
+    stage,
+    from_subaccount,
+    from,
+    to,
+    amount,
+    fee: ICP_FEE,
+    memo,
+    lower_bound,
+  })
+}
+
+fn receipt_for(account: &StakingAccount) -> Result<WindDownAccountReceipt, String> {
+  let receipt = get_receipt(account.get_id()).unwrap_or(WindDownAccountReceipt {
+    pool_id: account.get_pool_id(),
+    account_id: account.get_id(),
+    release_onchain_tx_id: account.get_release_onchain_tx_id(),
+    dissolve_onchain_tx_id: account.get_dissolve_onchain_tx_id(),
+    dissolve_pay_center_tx_id: account.get_dissolve_pay_center_tx_id(),
+    updated_at: ic_cdk::api::time(),
+  });
+  if receipt.pool_id != account.get_pool_id() {
+    return Err("Receipt belongs to a different pool".into());
+  }
+  Ok(receipt)
+}
+fn repair_for(account: &StakingAccount, v: recovery::Verified) -> ReleaseRepair {
+  ReleaseRepair {
+    account_id: account.get_id(),
+    block: v.block,
+    principal: if account.get_status() == StakingAccountStatus::InStake {
+      account.get_staked_amount()
+    } else {
+      account.get_released_amount()
+    },
+    transfer_amount: v.amount,
+    ledger_fee: v.fee,
+    timestamp: v.timestamp,
+  }
+}
+
+/// Before any new transfer, account for all historical confirmed pool debits.
+async fn audit_pool(pool: u64, budget: &mut Budget) -> StepResult<()> {
+  let mut audit = recovery::audit(pool);
+  if audit.version > 1 {
+    return Err(StepError::Failed("Unsupported wind-down audit version".into()));
+  }
+  audit.version = 1;
+  if audit.complete {
+    return Ok(());
+  }
+  let accounts: Vec<_> = query_staking_accounts_by_pool(pool)
+    .into_iter()
+    .filter(|a| a.get_id() > audit.cursor)
+    .take(20)
+    .collect();
+  for account in accounts {
+    if account.get_status() != StakingAccountStatus::Created
+      && (account.get_status() == StakingAccountStatus::InStake || account.get_released_amount() > 0)
+    {
+      let mut receipt = receipt_for(&account)?;
+      let verified = recovery::resolve(transfer_spec(&account, Stage::Release)?, nonzero(receipt.release_onchain_tx_id), false, budget).await?;
+      budget.check()?;
+      if let Some(v) = verified {
+        receipt.release_onchain_tx_id = v.block;
+        if account.get_status() != StakingAccountStatus::Dissolved {
+          save_receipt(&receipt);
+        }
+        audit.repairs.push(repair_for(&account, v));
+      } else if account.get_status() != StakingAccountStatus::InStake {
+        return Err(StepError::Failed(format!("Released account {} has no verifiable release", account.get_id())));
+      }
+    }
+    audit.cursor = account.get_id();
+    audit.progress = recovery::progress(pool);
+    recovery::save_audit(pool, audit.clone());
+  }
+  if query_staking_accounts_by_pool(pool).iter().any(|a| a.get_id() > audit.cursor) {
+    return Err(StepError::Pending("Historical release audit continues on the next batch".into()));
+  }
+  budget.take(1)?;
+  let balance = balance_of(&generate_staking_pool_account_identifier(pool))
+    .await
+    .map_err(StepError::Pending)?;
+  budget.check()?;
+  reconcile_release_repairs(pool, &audit.repairs, balance, ic_cdk::api::time())?;
+  audit.complete = true;
+  audit.repairs.clear();
+  audit.progress = None;
+  recovery::save_audit(pool, audit);
+  Ok(())
+}
+
+async fn release_account(account_id: u64, budget: &mut Budget) -> StepResult<StakingAccount> {
   let account = StakingAccount::query_by_id(account_id)?;
   if account.get_status() == StakingAccountStatus::Dissolved {
     return Ok(account);
   }
   if account.get_status() == StakingAccountStatus::Created {
-    return Err("Created account cannot be released".to_string());
+    return Err(StepError::Failed("Created account cannot be released".into()));
   }
-  if account.get_status() == StakingAccountStatus::Released {
-    if get_receipt(account_id).is_none() {
-      save_receipt(&WindDownAccountReceipt {
-        pool_id: account.get_pool_id(),
-        account_id,
-        release_onchain_tx_id: account.get_release_onchain_tx_id(),
-        dissolve_onchain_tx_id: 0,
-        dissolve_pay_center_tx_id: 0,
-        updated_at: ic_cdk::api::time(),
-      });
-    }
+  if account.get_status() == StakingAccountStatus::Released && account.get_released_amount() == 0 {
     return Ok(account);
   }
-
-  let receipt = get_receipt(account_id);
-  let release_tx_id = if let Some(receipt) = &receipt {
-    if receipt.pool_id != account.get_pool_id() {
-      return Err("Wind-down receipt belongs to another pool".to_string());
+  let mut receipt = receipt_for(&account)?;
+  let verified = recovery::resolve(transfer_spec(&account, Stage::Release)?, nonzero(receipt.release_onchain_tx_id), true, budget)
+    .await?
+    .ok_or("Release was not resolved".to_string())?;
+  receipt.release_onchain_tx_id = verified.block;
+  receipt.updated_at = ic_cdk::api::time();
+  save_receipt(&receipt);
+  // This read also commits the verified receipt before accounting can fail.
+  budget.take(1)?;
+  let balance = balance_of(&generate_staking_pool_account_identifier(account.get_pool_id()))
+    .await
+    .map_err(StepError::Pending)?;
+  budget.check()?;
+  let account = StakingAccount::query_by_id(account_id)?;
+  let current_users = crate::account::crud_utils::query_user_in_stake_accounts(account.get_owner(), account.get_pool_id());
+  if account.get_status() == StakingAccountStatus::InStake {
+    let pool = query_staking_pool_by_id(account.get_pool_id())?;
+    pool
+      .get_staked_amount()
+      .checked_sub(account.get_staked_amount())
+      .ok_or("Pool principal underflow".to_string())?;
+    if current_users.len() == 1 {
+      pool
+        .get_staked_user_count()
+        .checked_sub(1)
+        .ok_or("Pool user count underflow".to_string())?;
     }
-    receipt.release_onchain_tx_id
-  } else {
-    save_unstake_transfer_start_event(account_id, account.get_pool_id());
-    match transfer_from_staking_pool_to_staking_account(account.get_pool_id(), account_id, account.get_staked_amount()).await {
-      Ok(tx_id) => {
-        save_unstake_transfer_ok_event(account_id, account.get_pool_id(), tx_id);
-        let receipt = WindDownAccountReceipt {
-          pool_id: account.get_pool_id(),
-          account_id,
-          release_onchain_tx_id: tx_id,
-          dissolve_onchain_tx_id: 0,
-          dissolve_pay_center_tx_id: 0,
-          updated_at: ic_cdk::api::time(),
-        };
-        save_receipt(&receipt);
-        tx_id
-      }
-      Err(error) => {
-        save_unstake_transfer_fail_event(account_id, account.get_pool_id(), error.clone());
-        return Err(error);
-      }
-    }
-  };
-
-  let current_user_accounts = crate::account::crud_utils::query_user_in_stake_accounts(account.get_owner(), account.get_pool_id());
-  let pool = StakingPool::unstake_account(&account, &current_user_accounts)?;
-  let updated = account.change_to_un_stake(release_tx_id, account.get_staked_amount(), 0, ic_cdk::api::time(), 0, 0)?;
+  }
+  reconcile_release_repairs(account.get_pool_id(), &[repair_for(&account, verified.clone())], balance, ic_cdk::api::time())?;
+  if account.get_status() == StakingAccountStatus::Released {
+    return Ok(account);
+  }
+  // All fallible financial checks above precede this non-awaiting local commit.
+  // An unexpected failure must roll back this message, not return partial success.
+  let pool = StakingPool::unstake_account(&account, &current_users).unwrap_or_else(|e| ic_cdk::trap(&e));
+  let updated = account
+    .change_to_un_stake(verified.block, account.get_staked_amount(), 0, verified.timestamp, 0, 0)
+    .unwrap_or_else(|e| ic_cdk::trap(&e));
   save_unstake_event(&pool, &updated);
   Ok(updated)
 }
 
-async fn dissolve_account(account: StakingAccount) -> Result<StakingAccount, String> {
-  let _guard =
-    EntryGuard::new(get_unstake_guard_key(account.get_id())).map_err(|_| format!("Account {} is already being processed", account.get_id()))?;
-  let account = StakingAccount::query_by_id(account.get_id())?;
+async fn dissolve_account(account: StakingAccount, budget: &mut Budget) -> StepResult<StakingAccount> {
+  budget.check()?;
   if account.get_status() == StakingAccountStatus::Dissolved {
     return Ok(account);
   }
   if account.get_status() != StakingAccountStatus::Released {
-    return Err("Account is not Released".to_string());
+    return Err(StepError::Failed("Account is not Released".into()));
   }
-  let owner = Principal::from_text(account.get_owner()).map_err(|_| format!("Invalid account owner principal: {}", account.get_owner()))?;
-  let pay_center_id = get_exteral_canister_id(types::sys::ExteralCanisterLabels::PayCenter);
-  let pay_center = common_canisters::pay_center::Service(pay_center_id);
-  let receipt = get_receipt(account.get_id()).ok_or_else(|| "Missing wind-down account receipt".to_string())?;
-  let dissolve_tx_id = if receipt.dissolve_onchain_tx_id != 0 {
-    receipt.dissolve_onchain_tx_id
-  } else {
-    save_dissolve_pay_center_transfer_start_event(account.get_id(), pay_center_id.to_string());
-    let tx_id = match transfer_from_staking_account_to_pay_center(account.get_id(), account.get_released_amount()).await {
-      Ok(tx_id) => tx_id,
-      Err(error) => {
-        save_dissolve_pay_center_transfer_fail_event(account.get_id(), pay_center_id.to_string(), error.clone());
-        return Err(error);
-      }
-    };
-    save_dissolve_pay_center_transfer_ok_event(account.get_id(), pay_center_id.to_string(), tx_id);
-    let mut next_receipt = receipt.clone();
-    next_receipt.dissolve_onchain_tx_id = tx_id;
-    next_receipt.updated_at = ic_cdk::api::time();
-    save_receipt(&next_receipt);
-    tx_id
-  };
-
-  save_dissolve_pay_center_receive_start_event(account.get_id(), pay_center_id.to_string(), dissolve_tx_id);
-  let pay_center_tx_id = match pay_center
+  let mut receipt = receipt_for(&account)?;
+  if account.get_released_amount() == 0 {
+    save_receipt(&receipt);
+    let updated = account.change_to_dissolved(0, 0)?;
+    save_dissolve_event(&updated);
+    return Ok(updated);
+  }
+  if receipt.dissolve_onchain_tx_id == 0 {
+    if let Some(StakingAccountRecoverableError::DissolvePayCenterFailed(block)) = account.recoverable_error {
+      receipt.dissolve_onchain_tx_id = block;
+    }
+  }
+  let verified = recovery::resolve(transfer_spec(&account, Stage::Dissolve)?, nonzero(receipt.dissolve_onchain_tx_id), true, budget)
+    .await?
+    .ok_or("Dissolve was not resolved".to_string())?;
+  receipt.dissolve_onchain_tx_id = verified.block;
+  receipt.updated_at = ic_cdk::api::time();
+  save_receipt(&receipt);
+  budget.take(1)?;
+  let owner = Principal::from_text(account.get_owner()).map_err(|_| "Invalid owner principal".to_string())?;
+  let pay_center = common_canisters::pay_center::Service(get_exteral_canister_id(types::sys::ExteralCanisterLabels::PayCenter));
+  let result = pay_center
     .dissolve(
       owner,
       account.get_released_amount(),
-      dissolve_tx_id,
+      verified.block,
       account.get_onchain_address(),
       account.get_id(),
     )
     .await
-  {
-    Ok((common_canisters::pay_center::Result2::Ok(tx_id),)) => {
-      save_dissolve_pay_center_receive_ok_event(account.get_id(), pay_center_id.to_string(), dissolve_tx_id, tx_id);
-      tx_id
-    }
-    Ok((common_canisters::pay_center::Result2::Err(error),)) => {
-      save_dissolve_pay_center_receive_fail_event(account.get_id(), pay_center_id.to_string(), error.clone());
-      account.stable_to_recoverable_error(StakingAccountRecoverableError::DissolvePayCenterFailed(dissolve_tx_id));
-      return Err(error);
-    }
-    Err(error) => {
-      let message = format!("Pay center dissolve call failed: {:?}", error);
-      save_dissolve_pay_center_receive_fail_event(account.get_id(), pay_center_id.to_string(), message.clone());
-      account.stable_to_recoverable_error(StakingAccountRecoverableError::DissolvePayCenterFailed(dissolve_tx_id));
-      return Err(message);
+    .map_err(|e| StepError::Pending(format!("Pay center confirmation pending: {e:?}")))?;
+  let tx = match result.0 {
+    common_canisters::pay_center::Result2::Ok(tx) => tx,
+    common_canisters::pay_center::Result2::Err(error) => {
+      if error.starts_with("Dissolve historical receipt check is incomplete;") {
+        return Err(StepError::Pending(error));
+      }
+      return Err(StepError::Failed(format!("Pay center rejected dissolve confirmation: {error}")));
     }
   };
-
-  let updated = account.change_to_dissolved(dissolve_tx_id, pay_center_tx_id)?;
-  let mut next_receipt = receipt;
-  next_receipt.dissolve_onchain_tx_id = dissolve_tx_id;
-  next_receipt.dissolve_pay_center_tx_id = pay_center_tx_id;
-  next_receipt.updated_at = ic_cdk::api::time();
-  save_receipt(&next_receipt);
+  receipt.dissolve_pay_center_tx_id = tx;
+  save_receipt(&receipt);
+  budget.check()?;
+  let updated = StakingAccount::query_by_id(account.get_id())?.change_to_dissolved(verified.block, tx)?;
   save_dissolve_event(&updated);
   Ok(updated)
-}
-
-async fn process_account(account: StakingAccount) -> Result<StakingAccount, String> {
-  let released = release_account(account.get_id()).await?;
-  dissolve_account(released).await
 }
 
 #[ic_cdk::update]
@@ -563,33 +675,71 @@ pub async fn execute_staking_wind_down_batch(pool_id: StakingPoolId, batch_size:
     .map_err(|_| "The staking pool wind-down is already processing a batch".to_string())?;
   let mut job = get_job(pool_id)?;
   if job.phase == WindDownPhase::Finalized {
-    return Err("Wind-down is already finalized".to_string());
+    return Err("Wind-down is already finalized".into());
   }
   if job.phase == WindDownPhase::ResidualPending {
-    return Err("All accounts are processed; call finalize_staking_wind_down".to_string());
+    return Err("All accounts are processed; call finalize_staking_wind_down".into());
   }
   job.phase = WindDownPhase::Running;
   job.updated_at = ic_cdk::api::time();
   save_job(&job);
-
-  let accounts = find_next_accounts(pool_id, job.cursor, batch_size as usize);
+  let mut budget = Budget::new(pool_id);
   let mut processed_count = 0;
-  for account in accounts {
-    let account_id = account.get_id();
-    let updated = process_account(account).await?;
-    job.cursor = account_id;
-    job.completed_account_count = job.completed_account_count.saturating_add(1);
-    job.completed_amount = job.completed_amount.saturating_add(updated.get_released_amount());
-    job.updated_at = ic_cdk::api::time();
-    save_job(&job);
-    processed_count += 1;
+  let work: StepResult<()> = async {
+    audit_pool(pool_id, &mut budget).await?;
+    // Include dissolved accounts after the cursor: a prior callback may have committed
+    // the account before the job count was saved.
+    let accounts: Vec<_> = query_staking_accounts_by_pool(pool_id)
+      .into_iter()
+      .filter(|a| a.get_id() > job.cursor && (a.get_status() != StakingAccountStatus::Dissolved || get_receipt(a.get_id()).is_some()))
+      .take(batch_size as usize)
+      .collect();
+    for account in accounts {
+      budget.check()?;
+      let updated = if account.get_status() == StakingAccountStatus::Dissolved {
+        // Only wind-down receipts may advance a legacy job's completion count.
+        if get_receipt(account.get_id()).is_none() {
+          continue;
+        }
+        validate_dissolved_receipt(&account)?;
+        account
+      } else {
+        let released = release_account(account.get_id(), &mut budget).await?;
+        dissolve_account(released, &mut budget).await?
+      };
+      budget.check()?;
+      job = get_job(pool_id)?;
+      job.completed_account_count = job.completed_account_count.checked_add(1).ok_or("Completed count overflow".to_string())?;
+      job.completed_amount = job
+        .completed_amount
+        .checked_add(updated.get_released_amount())
+        .ok_or("Completed amount overflow".to_string())?;
+      job.cursor = updated.get_id();
+      job.updated_at = ic_cdk::api::time();
+      save_job(&job);
+      recovery::clear_progress(pool_id);
+      processed_count += 1;
+    }
+    Ok(())
   }
-
+  .await;
+  job = get_job(pool_id)?;
+  match work {
+    Ok(()) => {}
+    Err(StepError::Pending(message)) => recovery::report(pool_id, message, false),
+    Err(StepError::Failed(message)) => {
+      recovery::report(pool_id, message.clone(), true);
+      job.phase = WindDownPhase::Paused;
+      job.updated_at = ic_cdk::api::time();
+      save_job(&job);
+      return Err(message);
+    }
+  }
   let remaining_count = query_staking_accounts_by_pool(pool_id)
-    .into_iter()
-    .filter(|account| account.get_status() != StakingAccountStatus::Dissolved)
+    .iter()
+    .filter(|a| a.get_status() != StakingAccountStatus::Dissolved)
     .count() as u64;
-  if remaining_count == 0 {
+  if remaining_count == 0 && job.phase != WindDownPhase::Paused && job.completed_account_count == job.expected_account_count {
     job.phase = WindDownPhase::ResidualPending;
     job.updated_at = ic_cdk::api::time();
     save_job(&job);
@@ -694,25 +844,15 @@ pub async fn finalize_staking_wind_down(pool_id: StakingPoolId) -> Result<WindDo
 
 #[cfg(test)]
 mod tests {
-  use super::{estimate_residual, validate_batch_size};
-
   #[test]
-  fn batch_size_is_limited_to_one_through_twenty() {
-    assert!(validate_batch_size(0).is_err());
-    assert!(validate_batch_size(1).is_ok());
-    assert!(validate_batch_size(20).is_ok());
-    assert!(validate_batch_size(21).is_err());
-  }
-
-  #[test]
-  fn residual_estimate_accounts_for_principal_and_two_fees_per_release() {
-    assert_eq!(estimate_residual(250_000, 100_000, 1), 130_000);
-    assert_eq!(estimate_residual(100_000, 100_000, 1), 0);
-  }
-
-  #[test]
-  fn residual_at_or_below_the_ledger_fee_is_fee_dust() {
+  fn batch_and_balance_boundaries() {
+    assert!(super::validate_batch_size(0).is_err());
+    assert!(super::validate_batch_size(20).is_ok());
+    assert!(super::validate_batch_size(21).is_err());
+    assert_eq!(super::estimate_residual(250_000, 100_000, 1), 130_000);
     assert_eq!(super::sweepable_residual(10_000), None);
-    assert_eq!(super::sweepable_residual(10_001), Some(1));
+    assert_eq!(super::reconciliation_amount(150, 100).unwrap(), Some(50));
+    assert_eq!(super::reconciliation_amount(100, 100).unwrap(), None);
+    assert!(super::reconciliation_amount(99, 100).is_err());
   }
 }

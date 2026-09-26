@@ -50,13 +50,21 @@ impl PoolTransactionRecords {
       .cloned()
   }
 
-  pub fn add_record(&mut self, amount: i64, record_type: RecordType, block_index: BlockIndex, create_time: TimestampNanos) -> PoolTransactionRecord {
+  pub fn add_record(
+    &mut self,
+    amount: i64,
+    record_type: RecordType,
+    block_index: BlockIndex,
+    create_time: TimestampNanos,
+  ) -> Result<PoolTransactionRecord, String> {
     let newest_record = self.get_newest_transaction_record();
 
     let new_record = if let Some(record) = newest_record {
-      record.next_record(amount, record_type, block_index, create_time)
+      record.next_record(amount, record_type, block_index, create_time)?
     } else {
-      assert!(amount > 0, "The first transaction record must be a deposit");
+      if amount <= 0 {
+        return Err("The first transaction record must be a deposit".to_string());
+      }
 
       PoolTransactionRecord {
         id: Some(1),
@@ -73,7 +81,7 @@ impl PoolTransactionRecords {
     transaction_records.insert(new_record.get_id(), new_record.clone());
     self.transaction_records = Some(transaction_records);
 
-    new_record
+    Ok(new_record)
   }
 
   pub fn get_page(&self, page: u32, page_size: u32) -> PageResponse<PoolTransactionRecord> {
@@ -118,19 +126,36 @@ pub struct PoolTransactionRecord {
 }
 
 impl PoolTransactionRecord {
-  pub fn next_record(&self, amount: i64, record_type: RecordType, block_index: BlockIndex, create_time: TimestampNanos) -> PoolTransactionRecord {
-    PoolTransactionRecord {
-      id: Some(self.get_id() + 1),
+  pub fn next_record(
+    &self,
+    amount: i64,
+    record_type: RecordType,
+    block_index: BlockIndex,
+    create_time: TimestampNanos,
+  ) -> Result<PoolTransactionRecord, String> {
+    let balance = if amount >= 0 {
+      self
+        .get_balance()
+        .checked_add(amount as E8S)
+        .ok_or_else(|| "Overflow when adding transaction amount".to_string())?
+    } else {
+      let debit = amount
+        .checked_neg()
+        .ok_or_else(|| "Overflow when negating transaction amount".to_string())? as E8S;
+      self
+        .get_balance()
+        .checked_sub(debit)
+        .ok_or_else(|| format!("Insufficient virtual balance: balance={}, debit={}", self.get_balance(), debit))?
+    };
+
+    Ok(PoolTransactionRecord {
+      id: Some(self.get_id().checked_add(1).ok_or("Transaction record ID overflow")?),
       amount: Some(amount),
-      balance: Some(if amount > 0 {
-        self.get_balance().checked_add(amount as E8S).expect("Overflow when adding amount")
-      } else {
-        self.get_balance().checked_sub(-amount as E8S).expect("Overflow when subtracting amount")
-      }),
+      balance: Some(balance),
       record_type: Some(record_type),
       block_index: Some(block_index),
       created_at: Some(create_time),
-    }
+    })
   }
 
   pub fn get_id(&self) -> PoolTransactionRecordId {
@@ -147,6 +172,10 @@ impl PoolTransactionRecord {
 
   pub fn get_record_type(&self) -> RecordType {
     self.record_type.clone().unwrap()
+  }
+
+  pub fn get_block_index(&self) -> Option<BlockIndex> {
+    self.block_index
   }
 }
 
@@ -166,6 +195,8 @@ pub enum RecordType {
   NNSNeuronStake { neuron_id: EntityId },
   /// Transaction records generated when unstaking from nns neuron
   NNSNeuronUnstake { neuron_id: EntityId },
+  /// Synthetic transaction used to reconcile an externally transferred pool balance
+  Reconciliation,
   /// Transaction records generated when transferring to jackpot
   Jackpot { canister_id: Principal, product_id: ProductId },
 }
@@ -180,6 +211,7 @@ pub enum RecordTypeKey {
   NNSNeuronStake,
   NNSNeuronUnstake,
   Jackpot,
+  Reconciliation,
 }
 
 impl From<u8> for RecordTypeKey {
@@ -193,6 +225,7 @@ impl From<u8> for RecordTypeKey {
       5 => RecordTypeKey::NNSNeuronStake,
       6 => RecordTypeKey::NNSNeuronUnstake,
       7 => RecordTypeKey::Jackpot,
+      8 => RecordTypeKey::Reconciliation,
       _ => ic_cdk::trap(format!("Invalid RecordTypeKey index from u8 with value {}", index)),
     }
   }
@@ -208,6 +241,7 @@ impl From<&RecordType> for RecordTypeKey {
       RecordType::EarlyUnstakePenalty(_) => RecordTypeKey::EarlyUnstakePenalty,
       RecordType::NNSNeuronStake { neuron_id: _ } => RecordTypeKey::NNSNeuronStake,
       RecordType::NNSNeuronUnstake { neuron_id: _ } => RecordTypeKey::NNSNeuronUnstake,
+      RecordType::Reconciliation => RecordTypeKey::Reconciliation,
       RecordType::Jackpot {
         canister_id: _,
         product_id: _,
@@ -241,4 +275,31 @@ impl Storable for RecordTypeIndexKey {
   }
 
   const BOUND: Bound = Bound::Unbounded;
+}
+
+#[cfg(test)]
+mod tests {
+  use super::{PoolTransactionRecords, RecordType};
+
+  #[test]
+  fn insufficient_balance_returns_an_error_without_inserting_a_record() {
+    let mut records = PoolTransactionRecords::new_empty(3);
+    records.add_record(100, RecordType::Reconciliation, 0, 1).unwrap();
+
+    let result = records.add_record(-101, RecordType::Unstaking(1), 0, 2);
+
+    assert!(result.is_err());
+    assert_eq!(records.get_max_record_id(), 1);
+    assert_eq!(records.get_newest_transaction_record().unwrap().get_balance(), 100);
+  }
+
+  #[test]
+  fn reconciliation_increases_the_virtual_balance() {
+    let mut records = PoolTransactionRecords::new_empty(3);
+    records.add_record(100, RecordType::Reconciliation, 0, 1).unwrap();
+
+    let record = records.add_record(25, RecordType::Reconciliation, 0, 2).unwrap();
+
+    assert_eq!(record.get_balance(), 125);
+  }
 }

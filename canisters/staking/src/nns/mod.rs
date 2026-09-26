@@ -145,14 +145,14 @@ pub async fn sync_nns_neuron_by_pool_id(pool_id: StakingPoolId) -> Result<(), St
 /// admin endpoint has a separate permission; this helper is called only after
 /// the wind-down permission has been checked by the caller.
 pub async fn disburse_for_wind_down(pool_id: StakingPoolId) -> Result<(), String> {
-  if get_neuron_id_by_pool_id(pool_id).is_some() {
-    refresh_nns_neuron_by_pool(pool_id).await?;
+  let neuron_id = if let Some(neuron_id) = get_neuron_id_by_pool_id(pool_id) {
     sync_nns_neuron(pool_id).await?;
-  }
+    neuron_id
+  } else {
+    refresh_nns_neuron_by_pool(pool_id).await?
+  };
   let neuron = NNS_NEURON_MAP.with(|map| map.borrow().get(&pool_id).cloned());
-  let neuron_id = neuron
-    .and_then(|value| value.id.map(|id| id.id))
-    .ok_or_else(|| format!("No NNS neuron found for pool {}", pool_id))?;
+  let neuron_id = neuron.and_then(|value| value.id.map(|id| id.id)).unwrap_or(neuron_id);
 
   utils::nns_update::nns_disburse(neuron_id, pool_id).await?;
 

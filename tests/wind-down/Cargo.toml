@@ -1,0 +1,13 @@
+[package]
+name = "wind-down-integration"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace]
+
+[dev-dependencies]
+pocket-ic = "11"
+candid = "0.10"
+candid_parser = "0.2"
+serde = { version = "1", features = ["derive"] }
