@@ -33,7 +33,9 @@ mod tests {
     staking: Principal,
     ledger: Principal,
     pay: Principal,
+    pool: String,
     account: String,
+    pay_address: String,
   }
   fn wasm(name: &str, default: &str) -> Vec<u8> {
     fs::read(std::env::var(name).unwrap_or(default.into())).unwrap()
@@ -73,13 +75,17 @@ mod tests {
         staking,
         ledger,
         pay,
+        pool: String::new(),
         account: String::new(),
+        pay_address: String::new(),
       };
       t.configure();
       let args = Encode!(&pay, &released).unwrap();
       let raw = t.pic.update_call(staking, Principal::anonymous(), "fixture_seed", args).unwrap();
       let addresses = Decode!(&raw, Vec<String>).unwrap();
+      t.pool = addresses[0].clone();
       t.account = addresses[1].clone();
+      t.pay_address = addresses[2].clone();
       t.call(ledger,"seed",&format!("(record {{pool=\"{}\";account=\"{}\";pay=\"{}\";release={release};dissolve={dissolve};extra={extra}:nat64;duplicate={duplicate};tip={tip}:nat64}})",addresses[0],addresses[1],addresses[2]));
       t
     }
@@ -204,6 +210,29 @@ mod tests {
     assert_eq!(t.counters(t.ledger).0, 0);
   }
 
+  #[test]
+  fn residual_credit_retry_reuses_the_saved_transfer_after_balance_is_depleted() {
+    let t = Test::new(true, true, false, 0, false, 2000);
+    t.finish();
+    assert_eq!(t.status().phase, "ResidualPending");
+    let credits_before_residual = t.counters(t.pay).3;
+    t.controls(t.pay, 0, false, true);
+
+    // The first finalize transfers the residual and credits the pay center,
+    // but the injected lost response leaves the job pending.
+    t.call(t.staking, "finalize_staking_wind_down", "(3:nat64)");
+    assert_eq!(t.status().phase, "ResidualPending");
+    assert_eq!(t.counters(t.ledger).0, 1);
+    assert_eq!(t.counters(t.pay).3, credits_before_residual + 1);
+
+    // The pool balance is now zero. Retrying must replay the saved receipt,
+    // not skip pay-center settlement or issue another Ledger transfer.
+    t.call(t.staking, "finalize_staking_wind_down", "(3:nat64)");
+    assert_eq!(t.status().phase, "Finalized");
+    assert_eq!(t.counters(t.ledger).0, 1);
+    assert_eq!(t.counters(t.pay).3, credits_before_residual + 1);
+  }
+
   #[derive(CandidType, Deserialize, Debug)]
   enum PayResult {
     #[serde(rename = "ok")]
@@ -225,6 +254,119 @@ mod tests {
       .unwrap();
     Decode!(&raw, candid::Int).unwrap()
   }
+  fn install_actual_pay_center(t: &Test, wasm_name: &str, default: &str) {
+    t.pic.reinstall_canister(t.pay, wasm(wasm_name, default), pay_init(t), None).unwrap();
+  }
+  fn configure_actual_pay_center(t: &Test) {
+    t.pic
+      .update_call(t.pay, Principal::anonymous(), "fixture_staking", Encode!(&t.staking).unwrap())
+      .unwrap();
+  }
+  fn pay_house_state(t: &Test) -> (candid::Int, candid::Nat) {
+    let raw = t
+      .pic
+      .update_call(t.pay, Principal::anonymous(), "fixture_house_state", Encode!().unwrap())
+      .unwrap();
+    Decode!(&raw, candid::Int, candid::Nat).unwrap()
+  }
+  fn seed_residual_block(t: &Test, amount: u64, tx: u64) {
+    t.pic
+      .update_call(
+        t.ledger,
+        Principal::anonymous(),
+        "seed_transfer",
+        Encode!(&t.pool, &t.pay_address, &amount, &tx).unwrap(),
+      )
+      .unwrap();
+  }
+  fn pay_residual(t: &Test, caller: Principal, pool: u64, amount: u64, tx: u64, source: &str) -> PayResult {
+    let raw = t
+      .pic
+      .update_call(t.pay, caller, "receive_staking_wind_down_residual", Encode!(&pool, &amount, &tx, &source).unwrap())
+      .unwrap();
+    Decode!(&raw, PayResult).unwrap()
+  }
+
+  #[test]
+  fn actual_pay_center_rejects_missing_config_and_unauthorized_callers_before_ledger_io() {
+    let t = Test::new(true, true, false, 0, false, 2000);
+    install_actual_pay_center(&t, "PAY_CENTER_WASM", "/tmp/wind-down-pay-center/current.wasm");
+    seed_residual_block(&t, 307_214, 2001);
+
+    assert!(matches!(pay_residual(&t, t.staking, 3, 307_214, 2001, &t.pool), PayResult::Err(e) if e.contains("system config")));
+    assert_eq!(t.counters(t.ledger).2, 0);
+
+    configure_actual_pay_center(&t);
+    let before = pay_house_state(&t);
+    assert!(matches!(pay_residual(&t, Principal::anonymous(), 3, 307_214, 2001, &t.pool), PayResult::Err(e) if e == "permission denied"));
+    assert_eq!(pay_house_state(&t), before);
+    assert_eq!(t.counters(t.ledger).2, 0);
+  }
+
+  #[test]
+  fn actual_pay_center_binds_residual_replay_to_pool_amount_and_source() {
+    let t = Test::new(true, true, false, 0, false, 2000);
+    install_actual_pay_center(&t, "PAY_CENTER_WASM", "/tmp/wind-down-pay-center/current.wasm");
+    configure_actual_pay_center(&t);
+    seed_residual_block(&t, 307_214, 2001);
+
+    let args = Encode!(&3u64, &307_214u64, &2001u64, &t.pool).unwrap();
+    let first = t
+      .pic
+      .submit_call(t.pay, t.staking, "receive_staking_wind_down_residual", args.clone())
+      .unwrap();
+    let second = t.pic.submit_call(t.pay, t.staking, "receive_staking_wind_down_residual", args).unwrap();
+    for call in [first, second] {
+      let raw = t.pic.await_call(call).unwrap();
+      assert!(matches!(Decode!(&raw, PayResult).unwrap(), PayResult::Ok(2001)));
+    }
+    let credited = pay_house_state(&t);
+    assert_eq!(credited, (candid::Int::from(307_214u64), candid::Nat::from(1u64)));
+    assert!(matches!(pay_residual(&t, t.staking, 3, 307_214, 2001, &t.pool.to_uppercase()), PayResult::Ok(2001)));
+    assert_eq!(pay_house_state(&t), credited);
+    assert!(matches!(pay_residual(&t, t.staking, 4, 307_214, 2001, &t.pool), PayResult::Err(e) if e.contains("parameters do not match")));
+    assert!(matches!(pay_residual(&t, t.staking, 3, 307_213, 2001, &t.pool), PayResult::Err(e) if e.contains("amount")));
+    assert!(matches!(pay_residual(&t, t.staking, 3, 307_214, 2001, &t.account), PayResult::Err(e) if e.contains("from address")));
+    assert_eq!(pay_house_state(&t), credited);
+
+    seed_residual_block(&t, 100_000, 2002);
+    t.pic
+      .update_call(
+        t.pay,
+        Principal::anonymous(),
+        "fixture_house_transfer",
+        Encode!(&3u64, &100_000u64, &2002u64, &false).unwrap(),
+      )
+      .unwrap();
+    let ordinary_transfer = pay_house_state(&t);
+    assert!(matches!(pay_residual(&t, t.staking, 3, 100_000, 2002, &t.pool), PayResult::Err(e) if e.contains("conflicts")));
+    assert_eq!(pay_house_state(&t), ordinary_transfer);
+  }
+
+  #[test]
+  fn actual_pay_center_recovers_a_marked_legacy_residual_without_recrediting() {
+    let t = Test::new(true, true, false, 0, false, 2000);
+    install_actual_pay_center(&t, "PREVIOUS_PAY_CENTER_WASM", "/tmp/wind-down-pay-center/previous.wasm");
+    configure_actual_pay_center(&t);
+    seed_residual_block(&t, 307_214, 2001);
+    t.pic
+      .update_call(
+        t.pay,
+        Principal::anonymous(),
+        "fixture_house_transfer",
+        Encode!(&3u64, &307_214u64, &2001u64, &true).unwrap(),
+      )
+      .unwrap();
+    let credited = pay_house_state(&t);
+
+    t.pic
+      .upgrade_eop_canister(t.pay, wasm("PAY_CENTER_WASM", "/tmp/wind-down-pay-center/current.wasm"), pay_init(&t), None)
+      .unwrap();
+    configure_actual_pay_center(&t);
+    assert!(matches!(pay_residual(&t, t.staking, 3, 307_214, 2001, &t.pool), PayResult::Ok(2001)));
+    assert_eq!(pay_house_state(&t), credited);
+  }
+
   #[test]
   fn actual_pay_center_concurrent_replay_and_conflict() {
     let t = Test::new(true, true, false, 0, false, 2000);

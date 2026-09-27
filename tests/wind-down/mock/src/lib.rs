@@ -6,6 +6,7 @@ use std::{cell::RefCell, collections::BTreeMap};
 struct State {
   blocks: BTreeMap<u64, Block>,
   balance: u64,
+  pool: String,
   tip: u64,
   synced: u64,
   sends: u64,
@@ -13,6 +14,7 @@ struct State {
   verified: u64,
   credits: u64,
   credited: BTreeMap<u64, (Principal, u64, String, u64)>,
+  residual_credited: BTreeMap<u64, (u64, u64, String)>,
   duplicates: Vec<(TransferArgs, u64)>,
   reject_index: bool,
   hide_new: bool,
@@ -60,6 +62,7 @@ fn seed(seed: Seed) {
     s.tip = seed.tip;
     s.synced = seed.tip + 1;
     s.balance = if seed.release { 317_214 } else { 100_337_214 };
+    s.pool = seed.pool.clone();
     s.blocks.insert(10, block(&seed.account, &seed.pool, 100_020_000, 1, 1));
     if seed.release {
       s.blocks.insert(100, block(&seed.pool, &seed.account, 100_010_000, 2, 2));
@@ -73,6 +76,15 @@ fn seed(seed: Seed) {
     if seed.duplicate {
       s.blocks.insert(1500, block(&seed.pool, &seed.account, 100_010_000, 2, 5));
     }
+  });
+}
+#[ic_cdk::update]
+fn seed_transfer(from: String, to: String, amount: u64, tx: u64) {
+  STATE.with(|s| {
+    let mut s = s.borrow_mut();
+    s.blocks.insert(tx, block(&from, &to, amount, 3, 7));
+    s.tip = s.tip.max(tx);
+    s.synced = s.tip + 1;
   });
 }
 #[derive(CandidType, Deserialize)]
@@ -152,7 +164,7 @@ fn transfer(args: TransferArgs) -> Result<u64, TransferError> {
     {
       return Err(TransferError::TxDuplicate { duplicate_of: *id });
     }
-    let created = args.created_at_time.unwrap().timestamp_nanos;
+    let created = args.created_at_time.map(|time| time.timestamp_nanos).unwrap_or_else(ic_cdk::api::time);
     if ic_cdk::api::time().saturating_sub(created) > 86_400_000_000_000 {
       return Err(TransferError::TxTooOld {
         allowed_window_nanos: 86_400_000_000_000,
@@ -163,7 +175,7 @@ fn transfer(args: TransferArgs) -> Result<u64, TransferError> {
     let from = AccountIdentifier::new(&ic_cdk::api::msg_caller(), &args.from_subaccount.unwrap_or(Subaccount([0; 32]))).to_hex();
     s.blocks
       .insert(id, block(&from, &args.to.to_hex(), args.amount.e8s(), args.memo.0, created));
-    if args.memo.0 == 2 {
+    if args.memo.0 == 2 || (args.memo.0 == 3 && from == s.pool) {
       s.balance -= args.amount.e8s() + args.fee.e8s();
     }
     s.duplicates.push((args, id));
@@ -266,6 +278,39 @@ enum PayResult {
   Ok(u64),
   #[serde(rename = "err")]
   Err(String),
+}
+#[ic_cdk::update]
+fn get_address() -> String {
+  AccountIdentifier::new(&ic_cdk::api::canister_self(), &Subaccount([0; 32])).to_hex()
+}
+
+#[ic_cdk::update]
+async fn receive_staking_wind_down_residual(pool: u64, amount: u64, tx: u64, source: String) -> PayResult {
+  let result = STATE.with(|s| {
+    let mut s = s.borrow_mut();
+    let request = (pool, amount, source);
+    if let Some(previous) = s.residual_credited.get(&tx) {
+      return if *previous == request {
+        PayResult::Ok(tx)
+      } else {
+        PayResult::Err("Conflict".into())
+      };
+    }
+    s.residual_credited.insert(tx, request);
+    s.credits += 1;
+    PayResult::Ok(tx)
+  });
+  let lose = STATE.with(|s| {
+    let mut s = s.borrow_mut();
+    let value = s.lose_pay_reply;
+    s.lose_pay_reply = false;
+    value
+  });
+  if lose {
+    let _ = ic_cdk::call::Call::unbounded_wait(ic_cdk::api::canister_self(), "checkpoint").await;
+    ic_cdk::trap("Injected loss after pay center residual credit");
+  }
+  result
 }
 // Candid Rust rename uses serde attributes only with Deserialize derive.
 #[ic_cdk::update]

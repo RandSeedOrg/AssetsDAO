@@ -19,11 +19,14 @@ workspace, set `MOC` to its Motoko compiler and run:
 python3 src/pay_center/tests/build_wind_down_fixture.py
 ```
 
-That script compiles current and HEAD pay-center sources with simulator-only
-seeding methods, writes artifacts under `/tmp/wind-down-pay-center`, and checks
-stable type compatibility. It does not edit production source. The fixture records
-legacy credit without the new full receipt, exercising bounded reconstruction
-across an actual upgrade.
+That script compiles the working tree, a pre-receipt revision, and an explicit
+release baseline with simulator-only seeding methods. It writes artifacts under
+`/tmp/wind-down-pay-center` and checks both upgrade paths for stable type
+compatibility. `PAY_CENTER_BASE_REF` defaults to `origin/v4.7.3`, while
+`PAY_CENTER_PREVIOUS_REF` defaults to `HEAD`; both resolved commit SHAs are printed.
+Each historical fixture resolves local imports from the same Git snapshot instead
+of mixing old `main.mo` with current dependencies. The script does not edit
+production source.
 
 Run the suite:
 
@@ -56,7 +59,10 @@ permission to listen on localhost are required.
 - Archive verification requests exactly one block. The mock rejects all global
   range scans.
 - Pay-center response loss credits once. Actual Motoko concurrent replay and
-  conflicting requests, plus legacy history over an upgrade, are checked.
+  conflicting requests, unauthorized residual calls, pool/source-bound residual
+  receipts, plus legacy history over an upgrade, are checked.
+- A residual transfer whose pay-center response is lost is retried from its saved
+  transaction ID after the pool balance reaches zero; it transfers and credits once.
 - Pause during an in-flight batch remains Paused until an explicit Execute.
 
 ## Production boundary

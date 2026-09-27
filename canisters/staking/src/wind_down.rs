@@ -768,15 +768,17 @@ async fn sweep_residual(job: &mut WindDownJob) -> Result<(), String> {
   if job.residual_pay_center_tx_id != 0 {
     return Ok(());
   }
-  let balance = balance_of(&generate_staking_pool_account_identifier(job.pool_id)).await?;
-  let Some(amount_after_fee) = sweepable_residual(balance) else {
-    job.fee_dust = balance;
-    return Ok(());
-  };
-
   let (tx_id, amount) = if job.residual_onchain_tx_id != 0 {
+    // The transfer can succeed even when the pay-center callback is rejected
+    // or its response is lost. Retry the persisted receipt before consulting
+    // the now-depleted pool balance so the job cannot finalize uncredited.
     (job.residual_onchain_tx_id, job.residual_amount)
   } else {
+    let balance = balance_of(&generate_staking_pool_account_identifier(job.pool_id)).await?;
+    let Some(amount_after_fee) = sweepable_residual(balance) else {
+      job.fee_dust = balance;
+      return Ok(());
+    };
     let gross_amount = amount_after_fee.saturating_add(ICP_FEE);
     let (tx_id, amount) = transfer_from_staking_pool_to_pay_center_gross(job.pool_id, gross_amount).await?;
     job.residual_onchain_tx_id = tx_id;
